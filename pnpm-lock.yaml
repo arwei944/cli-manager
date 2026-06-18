@@ -11,6 +11,9 @@ importers:
       better-sqlite3:
         specifier: ^11.0.0
         version: 11.0.0
+      blessed:
+        specifier: ^0.1.81
+        version: 0.1.81
       chalk:
         specifier: ^5.3.0
         version: 5.6.2
@@ -584,6 +587,11 @@ packages:
 
   bl@2.2.0:
     resolution: {integrity: sha512-wbgvOpqopSr7uq6fJrLH8EsvYMJf9gzfo2jCsL2eTy75qXPukA4pCgHamOQkZtY5vmfVtjB+P3LNlMHW5CEZXA==}
+
+  blessed@0.1.81:
+    resolution: {integrity: sha512-LoF5gae+hlmfORcG1M5+5XZi4LBmvlXTzwJWzUlPryN/SJdSflZvROM2TwkT0GMpq7oqT48NRd4GS7BiVBc5OQ==}
+    engines: {node: '>= 0.8.0'}
+    hasBin: true
 
   bundle-require@5.1.0:
     resolution: {integrity: sha512-3WrrOuZiyaaZPWiEt4G3+IffISVC9HYlWueJEBWED4ZH4aIAC2PnkdnuRrR94M+w6yGWn4AglWtJtBI8YqvgoA==}
@@ -1464,6 +1472,8 @@ snapshots:
     dependencies:
       readable-stream: 2.3.8
       safe-buffer: 5.2.1
+
+  blessed@0.1.81: {}
 
   bundle-require@5.1.0(esbuild@0.27.7):
     dependencies:

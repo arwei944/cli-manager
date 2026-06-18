@@ -1,5 +1,10 @@
-/** @deprecated 已迁移到 src/db/migrations/001-initial.ts，从此文件直接执行 SQL 的方式已废弃 */
-export const SCHEMA_SQL: string = `
+import Database from 'better-sqlite3';
+import type { Migration } from './migration';
+
+// 将原本在 schema.ts 中的 SCHEMA_SQL 提取为迁移文件
+// 该迁移创建所有初始表（tools、scan_history、version_history、config）及相关索引
+
+const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS tools (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -46,3 +51,22 @@ CREATE TABLE IF NOT EXISTS config (
 
 CREATE INDEX IF NOT EXISTS idx_version_history_tool ON version_history(toolName);
 `;
+
+export const migration: Migration = {
+  version: 1,
+  description: '创建初始表结构（tools、scan_history、version_history、config）',
+  up(db: Database.Database): void {
+    db.exec(SCHEMA_SQL);
+  },
+  down(db: Database.Database): void {
+    db.exec(`
+      DROP TABLE IF EXISTS tools;
+      DROP TABLE IF EXISTS scan_history;
+      DROP TABLE IF EXISTS version_history;
+      DROP TABLE IF EXISTS config;
+    `);
+  },
+};
+
+// 导出默认对象，便于 migrator 动态导入识别
+export default migration;

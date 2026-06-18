@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import { loadBuiltinPlugins, loadUserPlugins, pluginManager } from './plugins';
 import { scanCommand } from './commands/scan';
 import { configCommand } from './commands/config';
 import { listCommand } from './commands/list';
@@ -23,6 +24,7 @@ import { completionCommand } from './commands/completion';
 import { initCommand } from './commands/init';
 import { webCommand } from './commands/web';
 import { dashboardCommand } from './commands/dashboard';
+import { recipeRegistry } from './recipe/registry';
 
 const program = new Command();
 
@@ -140,11 +142,52 @@ program
 program
   .command('recipe')
   .description('管理安装配方')
-  .argument('[action]', 'list | show')
-  .argument('[name]', '配方名称')
-  .action((action, name) => {
-    recipeCommand(action, name);
-  });
+  .addCommand(
+    program
+      .command('list')
+      .description('列出所有配方')
+      .action(() => {
+        recipeCommand('list');
+      })
+  )
+  .addCommand(
+    program
+      .command('show')
+      .description('查看配方详情')
+      .argument('<name>', '配方名称')
+      .action((name) => {
+        recipeCommand('show', name);
+      })
+  )
+  .addCommand(
+    program
+      .command('add')
+      .description('添加自定义配方')
+      .argument('<name>', '配方名称')
+      .option('--source <source>', '安装源 (npm|pip|gh|scoop|winget|choco)')
+      .option('--exec <executable>', '可执行文件名')
+      .action((name, options) => {
+        recipeCommand('add', name, options);
+      })
+  )
+  .addCommand(
+    program
+      .command('remove')
+      .description('删除配方')
+      .argument('<name>', '配方名称')
+      .action((name) => {
+        recipeCommand('remove', name);
+      })
+  )
+  .addCommand(
+    program
+      .command('edit')
+      .description('打开编辑器编辑配方')
+      .argument('<name>', '配方名称')
+      .action((name) => {
+        recipeCommand('edit', name);
+      })
+  );
 
 // P3 命令
 program
@@ -268,6 +311,23 @@ program
     statsCommand(options);
   });
 
+// 加载内置插件并注册用户插件到 Commander
+async function initializePlugins(): Promise<void> {
+  loadBuiltinPlugins();
+  const projectRoot = process.cwd();
+  loadUserPlugins(projectRoot).then((loaded) => {
+    if (loaded.length > 0) {
+      console.log(`已加载 ${loaded.length} 个用户插件: ${loaded.join(', ')}`);
+    }
+  }).catch(() => {
+    // 用户插件加载失败不影响主程序
+  });
+  pluginManager.setCommandProgram(program);
+  pluginManager.registerCommands();
+}
+
+initializePlugins();
+
 program
   .command('report')
   .description('生成环境报告')
@@ -307,5 +367,7 @@ if (process.argv.length === 2) {
     startInteractiveShell();
   });
 } else {
+  // 在解析命令前加载用户自定义配方（优先覆盖内置配方）
+  recipeRegistry.loadUserRecipes();
   program.parse(process.argv);
 }

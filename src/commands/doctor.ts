@@ -3,6 +3,7 @@ import { ToolRepo } from '../db/tool-repo';
 import { colors } from '../ui';
 import { parsePathDirectories } from '../utils/path';
 import { execSync } from 'node:child_process';
+import { pluginManager } from '../plugins';
 import fs from 'node:fs';
 
 const toolRepo = new ToolRepo();
@@ -101,4 +102,38 @@ export function doctorCommand() {
   }
 
   console.log(`\n${colors.bold('汇总')}: ${colors.success(`${diagnostics.filter(d => d.status === 'pass').length} 通过`)}，${colors.warning(`${warnings} 警告`)}，${colors.error(`${errors} 错误`)}`);
+
+  // 5. 插件系统健康检查
+  const plugins = pluginManager.list();
+  if (plugins.length > 0) {
+    console.log(`\n${colors.bold('插件系统检查')}`);
+    console.log(`${'─'.repeat(50)}`);
+    diagnostics.push({ status: 'pass', message: `已加载 ${plugins.length} 个插件` });
+
+    console.log(`\n  插件列表:`);
+    for (const plugin of plugins) {
+      console.log(`    - ${colors.bold(plugin.name)} v${plugin.version}`);
+    }
+
+    const usedHookTypes: string[] = [];
+    for (const plugin of plugins) {
+      if (plugin.hooks) {
+        for (const hookName of Object.keys(plugin.hooks) as string[]) {
+          if (!usedHookTypes.includes(hookName)) {
+            usedHookTypes.push(hookName);
+          }
+        }
+      }
+    }
+    if (usedHookTypes.length > 0) {
+      console.log(`\n  已注册的 Hooks: ${usedHookTypes.map(h => colors.info(h)).join(', ')}`);
+      diagnostics.push({ status: 'pass', message: `${usedHookTypes.length} 个 hook 类型的处理器可用` });
+    } else {
+      diagnostics.push({ status: 'warn', message: '当前无任何插件注册 hook' });
+      warnings++;
+    }
+  } else {
+    diagnostics.push({ status: 'warn', message: '未加载任何插件' });
+    warnings++;
+  }
 }

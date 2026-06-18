@@ -5,41 +5,63 @@ on:
     branches: [master, main]
   pull_request:
     branches: [master, main]
+  workflow_dispatch:
+
+# 取消同一工作流重复运行，仅保留最新
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build-and-test:
+  test-and-build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
         node-version: [18, 20, 22]
-
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          # 仅在 linux 最新 Node 上上传覆盖率，减少 noise
+          - node-version: 22
+            os: ubuntu-latest
+            upload-coverage: true
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
-
-      - name: 安装 pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
 
       - name: 设置 Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
+          cache: pnpm
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
 
       - name: 安装依赖
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
-      - name: 类型检查
+      - name: 代码检查
         run: pnpm lint
-
-      - name: 构建
-        run: pnpm build
 
       - name: 运行测试
         run: pnpm test
 
-      - name: 验证 CLI 基础命令
-        run: node dist/index.js --help
+      - name: 构建
+        run: pnpm build
+
+      - name: 上传测试覆盖率 (Codecov)
+        if: matrix.upload-coverage == true
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+
+      - name: 上传 build 产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.os }}-node${{ matrix.node-version }}
+          path: dist/
+          retention-days: 7

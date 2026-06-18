@@ -168,7 +168,8 @@ cli-manager/
 │   │   └── history-repo.ts      # 版本历史 CRUD
 │   ├── recipe/                  # 安装配方
 │   │   ├── loader.ts            # 配方加载器
-│   │   ├── registry.ts          # 配方注册表
+│   │   ├── registry.ts          # 配方注册表（含 CRUD）
+│   │   ├── user-loader.ts       # 用户配方加载（实时重载）
 │   │   └── builtin/             # 内置配方（YAML）
 │   │       ├── git.yml
 │   │       ├── node.yml
@@ -705,6 +706,20 @@ pnpm test
 | **预估工时** | 2 人天 |
 | **验收标准** | 内置配方 20+；每个配方 YAML 格式正确；配方可被配方引擎正确加载 |
 | **交付物** | src/recipe/builtin/git.yml、node.yml、python.yml 等 20+ 配方文件 |
+
+---
+
+#### TASK-P2-010：实现配方管理 CLI 子命令（recipe CRUD）
+
+| 字段 | 内容 |
+|------|------|
+| **所属模块** | 安装引擎 |
+| **优先级** | 🟡 P2 |
+| **前置依赖** | TASK-P2-006 |
+| **详细描述** | 扩展 `recipe` 命令为完整子命令系统，支持自定义配方的增删改查：`list`（列出所有配方，内置+用户，用户配方优先）、`show <name>`（查看配方详情）、`add <name> --source <source> --exec <executable>`（添加用户自定义配方并写入 YAML）、`remove <name>`（删除用户自定义配方，内置配方只读不能删除）、`edit <name>`（打开编辑器修改配方，内置配方会自动复制到用户目录后编辑）。用户配方目录优先级：项目根目录 `recipes/` > `~/.cli-manager/recipes/` |
+| **预估工时** | 2 人天 |
+| **验收标准** | recipe list 正确区分用户/内置配方；add 成功写入 YAML；remove 仅删除用户配方；edit 启动编辑器并自动重载 |
+| **交付物** | src/commands/install.ts 增强、src/recipe/registry.ts 增强 |
 
 ---
 

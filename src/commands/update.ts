@@ -4,21 +4,49 @@ import { HistoryRepo } from '../db/history-repo';
 import { initInstallers } from './install';
 import { registry } from '../installer';
 import { createSpinner } from '../ui/spinner';
-import { createTable } from '../ui';
 import { colors } from '../ui/colors';
+import { createTable } from '../ui/table';
+import { Scanner } from '../scanner';
+import semver from 'semver';
 import type { ToolSource } from '../types';
 
 const toolRepo = new ToolRepo();
 const historyRepo = new HistoryRepo();
 
-export async function updateCommand(name?: string, options?: { dryRun?: boolean }) {
+/**
+ * 获取最新版本并验证是否有更新
+ */
+async function resolveLatestVersion(
+  source: ToolSource,
+  name: string,
+  currentVersion?: string,
+): Promise<string | null> {
+  const installer = registry.get(source);
+  if (!installer) return null;
+
+  let latest: string | null = null;
+  try {
+    latest = await installer.getVersion(name);
+  } catch {
+    // 忽略版本获取失败
+  }
+
+  if (!latest) return null;
+  if (currentVersion && !semver.valid(currentVersion)) return latest;
+  if (currentVersion && !semver.valid(latest)) return latest;
+  if (currentVersion && semver.lte(latest, currentVersion)) return null;
+
+  return latest;
+}
+
+export async function updateCommand(name?: string, options?: { source?: string; dryRun?: boolean }) {
   initDatabase();
   initInstallers();
 
   if (name) {
     await updateSingle(name, options);
   } else {
-    await updateAll(options);
+    await updateBatch(options);
   }
 }
 
@@ -35,18 +63,18 @@ async function updateSingle(name: string, options?: { dryRun?: boolean }) {
     return;
   }
 
-  const source = tool.source as 'npm' | 'pip' | 'gh' | 'scoop' | 'winget' | 'choco';
-  if (!registry.hasSource(source as ToolSource)) {
+  const source = tool.source as ToolSource;
+  if (!registry.hasSource(source)) {
     console.log(colors.error(`不支持的更新源: ${source}`));
     return;
   }
 
-  const installer = registry.get(source as ToolSource)!;
+  const installer = registry.get(source)!;
   const spinner = createSpinner(`检查 ${name} 更新...`);
 
   try {
     const currentVersion = tool.version;
-    const latestVersion = await installer.getVersion(name);
+    const latestVersion = await resolveLatestVersion(source, name, currentVersion ?? undefined);
 
     if (!latestVersion || latestVersion === currentVersion) {
       spinner.succeed(`${name} 已是最新版本 (${currentVersion || '未知'})`);
@@ -64,11 +92,7 @@ async function updateSingle(name: string, options?: { dryRun?: boolean }) {
     if (result.success) {
       historyRepo.addVersionChange(name, currentVersion, latestVersion, 'update');
       spinner.succeed(`${name} 已更新: ${currentVersion} → ${latestVersion}`);
-
-      // 重新扫描更新清单
-      const { Scanner } = await import('../scanner');
-      const scanner = new Scanner();
-      await scanner.scan('incremental');
+      await refreshInventory();
     } else {
       spinner.fail(`更新失败: ${result.message}`);
     }
@@ -77,9 +101,13 @@ async function updateSingle(name: string, options?: { dryRun?: boolean }) {
   }
 }
 
-async function updateAll(options?: { dryRun?: boolean }) {
+async function updateBatch(options?: { dryRun?: boolean }) {
   const tools = toolRepo.findAll();
-  const updatable = tools.filter(t => !t.isPinned && t.version && registry.hasSource(t.source as 'npm' | 'pip'));
+  const updatable = tools.filter(t =>
+    !t.isPinned &&
+    t.version !== null &&
+    registry.hasSource(t.source as ToolSource),
+  );
 
   if (updatable.length === 0) {
     console.log(colors.info('没有需要更新的工具'));
@@ -89,22 +117,14 @@ async function updateAll(options?: { dryRun?: boolean }) {
   console.log(`\n${colors.bold('批量更新检查')}`);
   console.log(`${'─'.repeat(40)}`);
 
-  const rows: string[][] = [];
+  const rows: Array<{ name: string; source: string; current: string; latest: string }> = [];
   const spinner = createSpinner('检查更新...');
 
   for (const tool of updatable) {
-    const installer = registry.get(tool.source as 'npm' | 'pip');
-    if (!installer) continue;
-
     try {
-      const latestVersion = await installer.getVersion(tool.name);
-      if (latestVersion && latestVersion !== tool.version) {
-        rows.push([
-          tool.name,
-          tool.version || '-',
-          latestVersion,
-          colors.source(tool.source),
-        ]);
+      const latest = await resolveLatestVersion(tool.source as ToolSource, tool.name, tool.version ?? undefined);
+      if (latest && latest !== tool.version) {
+        rows.push({ name: tool.name, source: tool.source, current: tool.version!, latest });
       }
     } catch {
       // 跳过检查失败的工具
@@ -119,8 +139,8 @@ async function updateAll(options?: { dryRun?: boolean }) {
   spinner.succeed(`发现 ${rows.length} 个可更新工具`);
 
   console.log(createTable(
-    [{ header: '名称' }, { header: '当前版本' }, { header: '最新版本' }, { header: '来源' }],
-    rows,
+    [{ header: '名称' }, { header: '来源' }, { header: '当前版本' }, { header: '最新版本' }],
+    rows.map(r => [r.name, colors.source(r.source), r.current, r.latest]),
   ));
 
   if (options?.dryRun) {
@@ -128,28 +148,41 @@ async function updateAll(options?: { dryRun?: boolean }) {
     return;
   }
 
-  // 顺序执行更新
   let success = 0;
   let failed = 0;
   for (const row of rows) {
-    const [name] = row;
-    const toolSpinner = createSpinner(`更新 ${name}...`);
+    const tool = toolRepo.findByName(row.name)[0];
+    if (!tool) continue;
+    const source = tool.source as ToolSource;
+    const installer = registry.get(source);
+    if (!installer) continue;
+
+    const toolSpinner = createSpinner(`更新 ${row.name}...`);
     try {
-      const installer = registry.get(toolRepo.findByName(name)[0]?.source as 'npm' | 'pip');
-      if (!installer) continue;
-      const result = await installer.install(name);
+      const result = await installer.install(row.name, { version: row.latest });
       if (result.success) {
-        toolSpinner.succeed(`${name} 已更新`);
+        historyRepo.addVersionChange(row.name, row.current, row.latest, 'update');
+        toolSpinner.succeed(`${row.name} 已更新`);
         success++;
       } else {
-        toolSpinner.fail(`${name} 更新失败`);
+        toolSpinner.fail(`${row.name} 更新失败: ${result.message}`);
         failed++;
       }
-    } catch {
-      toolSpinner.fail(`${name} 更新异常`);
+    } catch (error) {
+      toolSpinner.fail(`${row.name} 更新异常: ${error}`);
       failed++;
     }
   }
 
   console.log(`\n${colors.bold('更新汇总')}: ${colors.success(`${success} 成功`)}，${colors.error(`${failed} 失败`)}`);
+}
+
+/**
+ * 重新扫描工具清单（增量扫描）
+ */
+async function refreshInventory(): Promise<void> {
+  const scanSpinner = createSpinner('更新工具清单...');
+  const scanner = new Scanner();
+  await scanner.scan('incremental');
+  scanSpinner.succeed('工具清单已更新');
 }

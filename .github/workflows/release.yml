@@ -1,0 +1,139 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+# 取消重复的 release 运行，避免 tag push 多个 action 重复耗时
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 各平台构建产物
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+          - os: windows-latest
+          - os: macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: 安装依赖 (含原生模块)
+        run: pnpm install --frozen-lockfile
+
+      - name: 构建 (tsup)
+        run: pnpm build
+
+      - name: 使用 ncc 打包为单文件 JS Bundle
+        run: npx ncc build dist/index.js --target node22 --out bundle
+
+      - name: 打包发行产物 (Linux/macOS)
+        if: runner.os != 'Windows'
+        id: pack
+        shell: bash
+        run: |
+          OS="${{ runner.os }}"
+          ARCH="${{ runner.arch }}"
+          if [[ "$OS" == "Linux" ]]; then
+            TARGET="linux-x64"
+          elif [[ "$OS" == "macOS" ]]; then
+            [[ "$ARCH" == "X64" ]] && TARGET="osx-x64" || TARGET="osx-arm64"
+          fi
+
+          RELEASE_DIR="dist/release-$TARGET"
+          rm -rf "$RELEASE_DIR"
+          mkdir -p "$RELEASE_DIR"
+
+          # Unix 可执行文件：shebang + ncc bundle
+          { printf '#!/usr/bin/env node\n'; cat bundle/index.js; } > "$RELEASE_DIR/cli-manager"
+          chmod +x "$RELEASE_DIR/cli-manager"
+
+          # 复制 bundle JS 和可能的原生 .node 模块
+          cp bundle/index.js "$RELEASE_DIR/index.js"
+          for f in bundle/*.node; do
+            [ -f "$f" ] && cp "$f" "$RELEASE_DIR/"
+          done
+
+          # 打包为 zip
+          (cd "$RELEASE_DIR" && zip -r "../../../cli-manager-$TARGET.zip" .)
+
+          echo "target=$TARGET" >> "$GITHUB_OUTPUT"
+          echo "file=cli-manager-$TARGET.zip" >> "$GITHUB_OUTPUT"
+
+      - name: 打包发行产物 (Windows)
+        if: runner.os == 'Windows'
+        id: pack
+        shell: pwsh
+        run: |
+          $target = "win-x64"
+          $releaseDir = "dist\release-$target"
+          New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
+
+          # Windows CMD wrapper：让 cli-manager.cmd 调用同目录下的 index.js
+          @"
+@echo off
+node "%~dp0index.js" %*
+"@ | Set-Content -Path "$releaseDir\cli-manager.cmd" -NoNewline
+
+          Copy-Item bundle\index.js $releaseDir\
+
+          # 复制 ncc 产物中的原生 .node 模块（better-sqlite3 等）
+          if (Test-Path bundle\*.node) {
+            Copy-Item bundle\*.node $releaseDir\
+          }
+
+          Compress-Archive -Path "$releaseDir\*" -DestinationPath "cli-manager-$target.zip" -Force
+          Write-Output "target=$target" >> $env:GITHUB_OUTPUT
+          Write-Output "file=cli-manager-$target.zip" >> $env:GITHUB_OUTPUT
+
+      - name: 上传 Release 产物作为 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.pack.outputs.target }}
+          path: cli-manager-*.zip
+          retention-days: 14
+
+  # 统一创建 GitHub Release 并上传所有平台的 zip 产物
+  create-release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: 下载所有平台的产物
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: 生成 Release 附件列表
+        id: files
+        shell: bash
+        run: |
+          FILES=$(find ./artifacts -name 'cli-manager-*.zip' | tr '\n' ',' | sed 's/,$//')
+          echo "files=$FILES" >> $GITHUB_ENV
+
+      - name: 创建 GitHub Release 并上传二进制文件
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.files }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

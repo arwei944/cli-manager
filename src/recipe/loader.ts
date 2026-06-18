@@ -29,20 +29,36 @@ export function loadRecipesFromDir(dir: string): Recipe[] {
   return recipes;
 }
 
-export function getRecipeSearchPaths(): string[] {
-  const builtinDir = path.join(process.cwd(), 'src', 'recipe', 'builtin');
-  const userDir = path.join(getHomeDir(), '.cli-manager', 'recipes');
+// 获取用户配方目录路径（优先使用项目根目录 recipes/， fallback 到 ~/.cli-manager/recipes/）
+export function getRecipeUserDir(): string {
   const projectDir = path.join(process.cwd(), 'recipes');
-  return [builtinDir, userDir, projectDir];
+  if (fs.existsSync(projectDir)) {
+    return projectDir;
+  }
+  const homeDir = path.join(getHomeDir(), '.cli-manager', 'recipes');
+  return homeDir;
+}
+
+// 获取内置配方目录路径
+export function getRecipeBuiltinDir(): string {
+  return path.join(process.cwd(), 'src', 'recipe', 'builtin');
+}
+
+export function getRecipeSearchPaths(): string[] {
+  const builtinDir = getRecipeBuiltinDir();
+  const userDir = getRecipeUserDir();
+  return [builtinDir, userDir];
 }
 
 export function loadAllRecipes(): Recipe[] {
   const allRecipes: Recipe[] = [];
   const seen = new Set<string>();
 
-  for (const dir of getRecipeSearchPaths()) {
-    const recipes = loadRecipesFromDir(dir);
-    for (const recipe of recipes) {
+  // 先加载内置配方（低优先级）
+  const builtinDir = getRecipeBuiltinDir();
+  if (fs.existsSync(builtinDir)) {
+    const builtinRecipes = loadRecipesFromDir(builtinDir);
+    for (const recipe of builtinRecipes) {
       if (!seen.has(recipe.name)) {
         seen.add(recipe.name);
         allRecipes.push(recipe);
@@ -50,7 +66,68 @@ export function loadAllRecipes(): Recipe[] {
     }
   }
 
+  // 再加载用户配方（高优先级，覆盖同名内置配方）
+  const userDir = getRecipeUserDir();
+  if (fs.existsSync(userDir)) {
+    const userRecipes = loadRecipesFromDir(userDir);
+    for (const recipe of userRecipes) {
+      // 用户配方覆盖同名内置配方
+      const existingIndex = allRecipes.findIndex(r => r.name === recipe.name);
+      if (existingIndex >= 0) {
+        allRecipes[existingIndex] = recipe;
+      } else {
+        allRecipes.push(recipe);
+      }
+    }
+  }
+
   return allRecipes;
+}
+
+// 仅加载用户目录中的配方（用于增量加载）
+export function loadUserRecipesFromDir(dir: string): Recipe[] {
+  return loadRecipesFromDir(dir);
+}
+
+// 保存配方到用户目录
+export function saveRecipeToFile(dir: string, recipe: Recipe): string {
+  // 确保目录存在
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  const filePath = path.join(dir, `${recipe.name}.yml`);
+  const yamlContent = yaml.dump(recipeToYaml(recipe), {
+    indent: 2,
+    lineWidth: 120,
+    noRefs: true,
+  });
+
+  fs.writeFileSync(filePath, yamlContent, 'utf-8');
+  return filePath;
+}
+
+// 将 Recipe 对象转换为 YAML 友好的 plain object
+function recipeToYaml(recipe: Recipe): Record<string, unknown> {
+  const data: Record<string, unknown> = {
+    name: recipe.name,
+    displayName: recipe.displayName,
+    description: recipe.description,
+    category: recipe.category,
+    sources: recipe.sources.map(s => ({
+      type: s.type,
+      packageName: s.packageName,
+      ...(s.executableName ? { executableName: s.executableName } : {}),
+    })),
+    versionCmd: recipe.versionCmd,
+    versionRegex: recipe.versionRegex,
+  };
+
+  if (recipe.postInstall && recipe.postInstall.length > 0) {
+    data.postInstall = recipe.postInstall;
+  }
+
+  return data;
 }
 
 function validateRecipe(data: Record<string, unknown>): Recipe | null {

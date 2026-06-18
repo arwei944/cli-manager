@@ -9,6 +9,8 @@ import { ConfigRepo } from '../db/config-repo';
 import { recipeRegistry } from '../recipe/registry';
 import { colors } from '../ui/colors';
 import os from 'node:os';
+// web.assets.ts 由 scripts/bundle-html.js 在构建时自动生成
+import { INDEX_HTML } from './web.assets';
 
 const toolRepo = new ToolRepo();
 const historyRepo = new HistoryRepo();
@@ -16,14 +18,9 @@ const configRepo = new ConfigRepo();
 
 let htmlCache: string | null = null;
 
-function loadHtml(forceReload = false): string {
-  if (!htmlCache || forceReload) {
-    const htmlPath = path.join(process.cwd(), 'src', 'commands', 'web.html');
-    if (fs.existsSync(htmlPath)) {
-      htmlCache = fs.readFileSync(htmlPath, 'utf-8');
-    } else {
-      htmlCache = '<html><body><h1>Web 面板 HTML 文件未找到</h1><p>请确认 src/commands/web.html 存在</p></body></html>';
-    }
+function loadHtml(_forceReload?: boolean): string {
+  if (!htmlCache) {
+    htmlCache = INDEX_HTML;
   }
   return htmlCache;
 }

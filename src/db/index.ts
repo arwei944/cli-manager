@@ -2,11 +2,12 @@ import Database from 'better-sqlite3';
 import path from 'node:path';
 import os from 'node:os';
 import fs from 'node:fs';
-import { SCHEMA_SQL } from './schema';
 import type { Config } from '../types';
 import { DEFAULT_CONFIG } from '../types';
+import { Migrator } from './migrator';
 
 let db: Database.Database | null = null;
+let migrator: Migrator | null = null;
 
 export function getDbPath(): string {
   const configDir = path.join(os.homedir(), '.cli-manager');
@@ -25,9 +26,19 @@ export function initDatabase(dbPath?: string): Database.Database {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
 
-  db.exec(SCHEMA_SQL);
+  // 自动执行迁移（同步）
+  migrator = new Migrator(db);
+  migrator.migrate();
 
   return db;
+}
+
+/** 获取 migrator 实例，用于测试或手动控制迁移 */
+export function getMigrator(): Migrator {
+  if (!migrator) {
+    throw new Error('Migrator 未初始化，请先调用 initDatabase()');
+  }
+  return migrator;
 }
 
 export function getDatabase(): Database.Database {
@@ -41,6 +52,7 @@ export function closeDatabase(): void {
   if (db) {
     db.close();
     db = null;
+    migrator = null;
   }
 }
 

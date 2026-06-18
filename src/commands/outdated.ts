@@ -1,25 +1,41 @@
 import { initDatabase } from '../db';
 import { ToolRepo } from '../db/tool-repo';
+import { ConfigRepo } from '../db/config-repo';
 import { initInstallers } from './install';
-import { registry } from '../installer';
 import { createSpinner } from '../ui/spinner';
-import { colors, createTable } from '../ui';
+import { colors, createTable, formatOutput } from '../ui';
+import { UpstreamChecker } from '../scanner/upstream';
+import semver from 'semver';
+import type { OutputFormat, ToolSource } from '../types';
 
 const toolRepo = new ToolRepo();
+const configRepo = new ConfigRepo();
+const upstreamChecker = new UpstreamChecker();
 
-function isValidNpmPackage(name: string): boolean {
-  // npm 包名校验：不能以 . 或 _ 开头，只能包含小写字母数字和 ._- 符号
-  return /^@?[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*)?$/.test(name);
+/**
+ * 上游版本结果接口
+ */
+interface UpstreamResult {
+  name: string;
+  source: string;
+  currentVersion: string | null;
+  latestVersion: string | null;
+  hasUpdate: boolean;
 }
 
-export async function outdatedCommand(options: { source?: string }) {
+export async function outdatedCommand(options: { source?: string; json?: boolean }) {
   initDatabase();
   initInstallers();
+
+  const config = configRepo.get();
+  const format: OutputFormat = options.json ? 'json' : config.defaultFormat;
+  const noColor = !config.colorEnabled;
 
   const tools = toolRepo.findAll();
   const checkable = tools.filter(t =>
     !t.isPinned &&
-    registry.hasSource(t.source as 'npm' | 'pip') &&
+    t.version &&
+    !['system', 'manual'].includes(t.source) &&
     (options.source ? t.source === options.source : true)
   );
 
@@ -29,39 +45,64 @@ export async function outdatedCommand(options: { source?: string }) {
   }
 
   const spinner = createSpinner('检查更新...');
-  const rows: string[][] = [];
+  const versionMap = new Map<string, { source: string; currentVersion: string | null; latestVersion: string | null }>();
+
+  // 优先支持 npm/pip/gh，其余来源降级处理
+  const upstreamSources = new Set<ToolSource>(['npm', 'pip', 'gh']);
 
   for (const tool of checkable) {
-    const installer = registry.get(tool.source as 'npm' | 'pip');
-    if (!installer) continue;
-
-    // 快速跳过非有效 npm 包名的工具
-    if (tool.source === 'npm' && !isValidNpmPackage(tool.name)) continue;
+    if (!upstreamSources.has(tool.source as ToolSource)) {
+      versionMap.set(tool.name, { source: tool.source, currentVersion: tool.version, latestVersion: null });
+      continue;
+    }
 
     try {
-      const latestVersion = await installer.getVersion(tool.name);
-      if (latestVersion && latestVersion !== tool.version) {
-        rows.push([
-          tool.name,
-          tool.version || '-',
-          latestVersion,
-          colors.source(tool.source),
-        ]);
-      }
+      const latestVersion = upstreamChecker.getLatestVersion(tool.name, tool.source, tool.version ?? undefined);
+      versionMap.set(tool.name, { source: tool.source, currentVersion: tool.version, latestVersion: latestVersion });
     } catch {
-      // 跳过检查失败的工具
+      versionMap.set(tool.name, { source: tool.source, currentVersion: tool.version, latestVersion: null });
     }
   }
 
-  if (rows.length === 0) {
+  const results: UpstreamResult[] = Array.from(versionMap.entries()).map(([name, { source, currentVersion, latestVersion }]) => {
+    let hasUpdate = false;
+    if (latestVersion && currentVersion) {
+      try {
+        hasUpdate = semver.gt(latestVersion, currentVersion);
+      } catch {
+        hasUpdate = false;
+      }
+    }
+    return { name, source, currentVersion, latestVersion, hasUpdate };
+  });
+
+  if (format === 'json') {
+    console.log(formatOutput(results as unknown as Array<Record<string, unknown>>, [
+      { header: 'name' },
+      { header: 'source' },
+      { header: 'currentVersion' },
+      { header: 'latestVersion' },
+      { header: 'hasUpdate' },
+    ], { format: 'json', noColor }));
+    return;
+  }
+
+  const updatable = results.filter(r => r.hasUpdate);
+
+  if (updatable.length === 0) {
     spinner.succeed('所有工具已是最新');
     return;
   }
 
-  spinner.succeed(`发现 ${rows.length} 个可更新工具`);
+  spinner.succeed(`发现 ${updatable.length} 个可更新工具`);
   console.log(createTable(
-    [{ header: '名称' }, { header: '当前版本' }, { header: '最新版本' }, { header: '来源' }],
-    rows,
+    [
+      { header: '名称' },
+      { header: '来源' },
+      { header: '当前版本' },
+      { header: '最新版本' },
+    ],
+    updatable.map(row => [row.name, colors.source(row.source), row.currentVersion ?? '-', row.latestVersion ?? '-']),
   ));
   console.log(colors.dim('使用 "update <name>" 更新单个工具，或 "update" 批量更新'));
 }
