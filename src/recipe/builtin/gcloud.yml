@@ -1,0 +1,13 @@
+name: gcloud
+displayName: Google Cloud SDK
+description: 'Google Cloud 命令行工具'
+category: dev
+sources:
+  - type: winget
+    packageName: Google.CloudSDK
+    executableName: gcloud
+  - type: choco
+    packageName: gcloudsdk
+    executableName: gcloud
+versionCmd: 'gcloud --version'
+versionRegex: 'Google Cloud SDK (\d+\.\d+\.\d+)'

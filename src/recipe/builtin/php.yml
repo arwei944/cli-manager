@@ -1,0 +1,13 @@
+name: php
+displayName: PHP
+description: 'PHP 编程语言'
+category: dev
+sources:
+  - type: winget
+    packageName: PHP.PHP.8.2
+    executableName: php
+  - type: choco
+    packageName: php
+    executableName: php
+versionCmd: 'php --version'
+versionRegex: 'PHP (\d+\.\d+\.\d+)'

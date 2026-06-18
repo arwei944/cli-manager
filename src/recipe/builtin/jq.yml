@@ -1,0 +1,16 @@
+name: jq
+displayName: jq
+description: '命令行 JSON 处理器'
+category: dev
+sources:
+  - type: winget
+    packageName: jqlang.jq
+    executableName: jq
+  - type: choco
+    packageName: jq
+    executableName: jq
+  - type: scoop
+    packageName: jq
+    executableName: jq
+versionCmd: 'jq --version'
+versionRegex: 'jq-(\d+\.\d+)'

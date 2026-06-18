@@ -1,0 +1,13 @@
+name: go
+displayName: Go
+description: 'Go 编程语言'
+category: dev
+sources:
+  - type: winget
+    packageName: GoLang.Go
+    executableName: go
+  - type: choco
+    packageName: golang
+    executableName: go
+versionCmd: 'go version'
+versionRegex: 'go version go(\d+\.\d+\.\d+)'

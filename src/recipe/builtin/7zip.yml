@@ -1,0 +1,13 @@
+name: 7zip
+displayName: 7-Zip
+description: '开源压缩工具'
+category: system
+sources:
+  - type: winget
+    packageName: 7zip.7zip
+    executableName: 7z
+  - type: choco
+    packageName: 7zip
+    executableName: 7z
+versionCmd: '7z --help'
+versionRegex: '7-Zip (\d+\.\d+)'

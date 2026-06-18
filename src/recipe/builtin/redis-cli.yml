@@ -1,0 +1,13 @@
+name: redis-cli
+displayName: Redis
+description: 'Redis 内存数据库'
+category: dev
+sources:
+  - type: winget
+    packageName: Redisant.RedisAssistant
+    executableName: redis-cli
+  - type: choco
+    packageName: redis-64
+    executableName: redis-cli
+versionCmd: 'redis-cli --version'
+versionRegex: 'redis-cli (\d+\.\d+\.\d+)'

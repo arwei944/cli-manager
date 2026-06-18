@@ -1,0 +1,13 @@
+name: terraform
+displayName: Terraform
+description: '基础设施即代码工具'
+category: dev
+sources:
+  - type: winget
+    packageName: HashiCorp.Terraform
+    executableName: terraform
+  - type: choco
+    packageName: terraform
+    executableName: terraform
+versionCmd: 'terraform --version'
+versionRegex: 'Terraform v(\d+\.\d+\.\d+)'

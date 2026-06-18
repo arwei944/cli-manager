@@ -1,0 +1,16 @@
+name: aws
+displayName: AWS CLI
+description: '亚马逊云服务命令行工具'
+category: dev
+sources:
+  - type: winget
+    packageName: Amazon.AWSCLI
+    executableName: aws
+  - type: choco
+    packageName: awscli
+    executableName: aws
+  - type: scoop
+    packageName: aws
+    executableName: aws
+versionCmd: 'aws --version'
+versionRegex: 'aws-cli/(\d+\.\d+\.\d+)'

@@ -1,0 +1,13 @@
+name: helm
+displayName: Helm
+description: 'Kubernetes 包管理器'
+category: dev
+sources:
+  - type: winget
+    packageName: Helm.Helm
+    executableName: helm
+  - type: choco
+    packageName: kubernetes-helm
+    executableName: helm
+versionCmd: 'helm version'
+versionRegex: 'v(\d+\.\d+\.\d+)'

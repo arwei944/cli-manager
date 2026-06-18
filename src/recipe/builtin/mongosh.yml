@@ -1,0 +1,13 @@
+name: mongosh
+displayName: MongoDB Shell
+description: 'MongoDB 命令行客户端'
+category: dev
+sources:
+  - type: winget
+    packageName: MongoDB.Shell
+    executableName: mongosh
+  - type: choco
+    packageName: mongosh
+    executableName: mongosh
+versionCmd: 'mongosh --version'
+versionRegex: '(\d+\.\d+\.\d+)'

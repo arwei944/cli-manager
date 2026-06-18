@@ -1,0 +1,10 @@
+name: rustup
+displayName: Rustup
+description: 'Rust 工具链管理器'
+category: dev
+sources:
+  - type: winget
+    packageName: Rustlang.Rustup
+    executableName: rustup
+versionCmd: 'rustup --version'
+versionRegex: 'rustup (\d+\.\d+\.\d+)'

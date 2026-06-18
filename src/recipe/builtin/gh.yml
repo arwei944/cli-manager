@@ -1,0 +1,16 @@
+name: gh
+displayName: GitHub CLI
+description: 'GitHub 官方命令行工具'
+category: dev
+sources:
+  - type: winget
+    packageName: GitHub.cli
+    executableName: gh
+  - type: choco
+    packageName: gh
+    executableName: gh
+  - type: scoop
+    packageName: gh
+    executableName: gh
+versionCmd: 'gh --version'
+versionRegex: 'gh version (\d+\.\d+\.\d+)'

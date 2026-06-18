@@ -1,0 +1,16 @@
+name: python
+displayName: Python
+description: 'Python 编程语言'
+category: dev
+sources:
+  - type: winget
+    packageName: Python.Python.3.12
+    executableName: python
+  - type: choco
+    packageName: python
+    executableName: python
+  - type: scoop
+    packageName: python
+    executableName: python
+versionCmd: 'python --version'
+versionRegex: '(\d+\.\d+\.\d+)'

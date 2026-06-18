@@ -1,0 +1,13 @@
+name: node
+displayName: Node.js
+description: 'JavaScript 运行时环境'
+category: dev
+sources:
+  - type: winget
+    packageName: OpenJS.NodeJS
+    executableName: node
+  - type: choco
+    packageName: nodejs
+    executableName: node
+versionCmd: 'node --version'
+versionRegex: 'v(\d+\.\d+\.\d+)'

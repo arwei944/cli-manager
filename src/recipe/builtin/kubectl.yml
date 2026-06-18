@@ -1,0 +1,13 @@
+name: kubectl
+displayName: kubectl
+description: 'Kubernetes 命令行工具'
+category: dev
+sources:
+  - type: winget
+    packageName: Kubernetes.kubectl
+    executableName: kubectl
+  - type: choco
+    packageName: kubernetes-cli
+    executableName: kubectl
+versionCmd: 'kubectl version --client'
+versionRegex: 'Client Version: v(\d+\.\d+\.\d+)'

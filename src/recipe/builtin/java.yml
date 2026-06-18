@@ -1,0 +1,13 @@
+name: java
+displayName: Java (Eclipse Temurin)
+description: 'Java 运行时环境'
+category: dev
+sources:
+  - type: winget
+    packageName: EclipseAdoptium.Temurin.21.JDK
+    executableName: java
+  - type: choco
+    packageName: temurin21jre
+    executableName: java
+versionCmd: 'java --version'
+versionRegex: '(\d+\.\d+\.\d+)'

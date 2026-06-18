@@ -1,0 +1,13 @@
+name: vscode
+displayName: Visual Studio Code
+description: '微软代码编辑器'
+category: editor
+sources:
+  - type: winget
+    packageName: Microsoft.VisualStudioCode
+    executableName: code
+  - type: choco
+    packageName: vscode
+    executableName: code
+versionCmd: 'code --version'
+versionRegex: '(\d+\.\d+\.\d+)'

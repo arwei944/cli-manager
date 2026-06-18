@@ -1,0 +1,13 @@
+name: yq
+displayName: yq
+description: '命令行 YAML 处理器'
+category: dev
+sources:
+  - type: winget
+    packageName: MikeFarah.yq
+    executableName: yq
+  - type: choco
+    packageName: yq
+    executableName: yq
+versionCmd: 'yq --version'
+versionRegex: 'version (\d+\.\d+\.\d+)'

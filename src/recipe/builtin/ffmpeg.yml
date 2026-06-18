@@ -1,0 +1,16 @@
+name: ffmpeg
+displayName: FFmpeg
+description: '音视频处理工具'
+category: system
+sources:
+  - type: winget
+    packageName: Gyan.FFmpeg
+    executableName: ffmpeg
+  - type: choco
+    packageName: ffmpeg
+    executableName: ffmpeg
+  - type: scoop
+    packageName: ffmpeg
+    executableName: ffmpeg
+versionCmd: 'ffmpeg -version'
+versionRegex: 'version (\d+\.\d+\.\d+)'

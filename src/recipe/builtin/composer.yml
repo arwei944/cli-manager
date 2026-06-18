@@ -1,0 +1,13 @@
+name: composer
+displayName: Composer
+description: 'PHP 依赖管理工具'
+category: dev
+sources:
+  - type: winget
+    packageName: Composer.Composer
+    executableName: composer
+  - type: choco
+    packageName: composer
+    executableName: composer
+versionCmd: 'composer --version'
+versionRegex: 'Composer version (\d+\.\d+\.\d+)'

@@ -1,0 +1,13 @@
+name: ruby
+displayName: Ruby
+description: 'Ruby 编程语言'
+category: dev
+sources:
+  - type: winget
+    packageName: RubyInstallerTeam.Ruby.3.2
+    executableName: ruby
+  - type: choco
+    packageName: ruby
+    executableName: ruby
+versionCmd: 'ruby --version'
+versionRegex: 'ruby (\d+\.\d+\.\d+)'

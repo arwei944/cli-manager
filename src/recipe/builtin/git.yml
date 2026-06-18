@@ -1,0 +1,18 @@
+name: git
+displayName: Git
+description: '分布式版本控制工具'
+category: dev
+sources:
+  - type: winget
+    packageName: Git.Git
+    executableName: git
+  - type: choco
+    packageName: git
+    executableName: git
+  - type: scoop
+    packageName: git
+    executableName: git
+versionCmd: 'git --version'
+versionRegex: '(\d+\.\d+\.\d+)'
+postInstall:
+  - 'git config --global init.defaultBranch main'

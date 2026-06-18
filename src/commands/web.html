@@ -1,0 +1,526 @@
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>CLI 工具管理器 - Web 面板</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", sans-serif; background: #1e1e1e; color: #d4d4d4; min-height: 100vh; }
+  .header { background: #252526; padding: 12px 24px; border-bottom: 1px solid #3c3c3c; display: flex; align-items: center; justify-content: space-between; }
+  .header h1 { color: #569cd6; font-size: 18px; margin: 0; }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+  .badge { background: #0e639c; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; }
+  .tabs { display: flex; background: #2d2d30; border-bottom: 1px solid #3c3c3c; padding: 0 20px; }
+  .tab { padding: 10px 20px; cursor: pointer; color: #888; border-bottom: 2px solid transparent; font-size: 14px; }
+  .tab:hover { color: #d4d4d4; background: #2a2d2e; }
+  .tab.active { color: #569cd6; border-bottom-color: #569cd6; }
+  .tab-content { display: none; padding: 20px; }
+  .tab-content.active { display: block; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat-card { background: #252526; padding: 14px; border-radius: 6px; border: 1px solid #3c3c3c; }
+  .stat-card .label { color: #888; font-size: 11px; margin-bottom: 4px; text-transform: uppercase; }
+  .stat-card .value { font-size: 22px; font-weight: bold; }
+  .stat-card .sub { font-size: 12px; color: #666; margin-top: 4px; }
+  .color-success { color: #4ec9b0; }
+  .color-warning { color: #dcdcaa; }
+  .color-error { color: #f48771; }
+  .color-info { color: #569cd6; }
+  .health-panel { background: #252526; border-radius: 8px; border: 1px solid #3c3c3c; padding: 16px; margin-bottom: 20px; }
+  .health-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #333; }
+  .health-item:last-child { border-bottom: none; }
+  .health-icon { width: 20px; text-align: center; font-size: 14px; }
+  .quick-actions { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .action-btn { background: #0e639c; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; text-align: center; }
+  .action-btn:hover { background: #1177bb; }
+  .action-btn.warning { background: #ca5800; }
+  .toolbar { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+  .toolbar input, .toolbar select { background: #2d2d30; color: #d4d4d4; border: 1px solid #3c3c3c; padding: 8px 12px; border-radius: 4px; font-size: 13px; }
+  .toolbar input { flex: 1; min-width: 200px; }
+  table { width: 100%; border-collapse: collapse; background: #252526; border-radius: 8px; overflow: hidden; font-size: 13px; }
+  th { background: #2d2d30; padding: 10px; text-align: left; color: #569cd6; border-bottom: 1px solid #3c3c3c; font-weight: 600; }
+  td { padding: 8px 10px; border-bottom: 1px solid #333; }
+  tr:hover { background: #2a2d2e; }
+  .source-tag { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+  .source-system { background: #5a3a3a; color: #f48771; }
+  .source-npm { background: #5a4a2a; color: #dcdcaa; }
+  .source-pip { background: #2a5a3a; color: #4ec9b0; }
+  .source-scoop { background: #2a3a5a; color: #9cdcfe; }
+  .source-winget { background: #3a2a5a; color: #c586c0; }
+  .source-choco { background: #5a2a3a; color: #ce9178; }
+  .source-manual { background: #3c3c3c; color: #888; }
+  .source-gh { background: #1a3a1a; color: #6a9955; }
+  .cat-dev { color: #4ec9b0; }
+  .cat-ai { color: #c586c0; }
+  .cat-system { color: #dcdcaa; }
+  .cat-editor { color: #9cdcfe; }
+  .cat-other { color: #888; }
+  .empty { text-align: center; padding: 40px; color: #666; font-size: 14px; }
+  .text-dim { color: #888; font-size: 12px; }
+  .link-btn { color: #569cd6; cursor: pointer; text-decoration: underline; }
+  .recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .recipe-card { background: #252526; border: 1px solid #3c3c3c; border-radius: 8px; padding: 14px; }
+  .recipe-card h3 { color: #4ec9b0; font-size: 14px; margin-bottom: 6px; }
+  .recipe-card .desc { color: #888; font-size: 12px; margin-bottom: 10px; }
+  .recipe-card .sources { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+  .recipe-card .actions { display: flex; gap: 8px; }
+  .recipe-card button { flex: 1; padding: 6px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+  .recipe-card .btn-primary { background: #0e639c; color: white; }
+  .recipe-card .btn-secondary { background: #3c3c3c; color: #d4d4d4; }
+  .config-form { max-width: 600px; }
+  .config-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #333; }
+  .config-row label { color: #d4d4d4; font-size: 13px; }
+  .config-row select, .config-row input { background: #2d2d30; color: #d4d4d4; border: 1px solid #3c3c3c; padding: 6px 10px; border-radius: 4px; }
+  .toast { position: fixed; top: 20px; right: 20px; background: #0e639c; color: white; padding: 12px 20px; border-radius: 6px; font-size: 13px; display: none; z-index: 100; }
+  @media (max-width: 768px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .quick-actions { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>CLI 工具管理器</h1>
+    <div class="header-actions">
+      <span class="badge" id="toolCountBadge">-</span>
+      <button class="action-btn" onclick="triggerScan()" style="padding:6px 14px;font-size:12px;">重新扫描</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('dashboard', this)">仪表盘</div>
+    <div class="tab" onclick="switchTab('tools', this)">工具</div>
+    <div class="tab" onclick="switchTab('environment', this)">环境</div>
+    <div class="tab" onclick="switchTab('recipes', this)">配方</div>
+    <div class="tab" onclick="switchTab('config', this)">配置</div>
+  </div>
+
+  <!-- 仪表盘 -->
+  <div id="tab-dashboard" class="tab-content active">
+    <div id="loadingIndicator" style="padding:8px 12px;color:#569cd6;font-size:13px;">⏳ 正在加载数据...</div>
+    <div class="stats-grid" id="statsCards"></div>
+    <div class="quick-actions">
+      <button class="action-btn" onclick="triggerScan()">扫描工具</button>
+      <button class="action-btn" onclick="triggerBackup()">导出备份</button>
+      <button class="action-btn warning" onclick="showToast('Web 面板健康检查: /api/health')">健康检查</button>
+      <button class="action-btn" onclick="switchTab('tools', document.querySelectorAll('.tab')[1])">查看全部工具</button>
+      <button class="action-btn" onclick="switchTab('recipes', document.querySelectorAll('.tab')[3])">浏览配方库</button>
+      <button class="action-btn" onclick="refreshAll()">刷新所有数据</button>
+    </div>
+    <div class="health-panel">
+      <h3 style="margin-bottom:12px;color:#569cd6;">系统健康状态</h3>
+      <div id="healthList"></div>
+    </div>
+    <div class="health-panel">
+      <h3 style="margin-bottom:12px;color:#569cd6;">来源分布</h3>
+      <div id="sourceBars"></div>
+      <h3 style="margin:16px 0 12px;color:#569cd6;">分类分布</h3>
+      <div id="categoryBars"></div>
+    </div>
+    <div class="health-panel">
+      <h3 style="margin-bottom:12px;color:#569cd6;">历史记录（最近扫描）</h3>
+      <table style="font-size:12px;margin-top:8px;">
+        <thead><tr><th>时间</th><th>类型</th><th>耗时(秒)</th><th>扫描结果</th></tr></thead>
+        <tbody id="historyTable">
+          <tr><td colspan="4" class="empty">加载中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 工具列表 -->
+  <div id="tab-tools" class="tab-content">
+    <div class="toolbar">
+      <input type="text" id="search" placeholder="搜索工具名称或路径..." oninput="filterTools()">
+      <select id="sourceFilter" onchange="filterTools()">
+        <option value="">所有来源</option>
+        <option value="system">system</option>
+        <option value="npm">npm</option>
+        <option value="pip">pip</option>
+        <option value="scoop">scoop</option>
+        <option value="winget">winget</option>
+        <option value="choco">choco</option>
+        <option value="gh">gh</option>
+        <option value="manual">manual</option>
+      </select>
+      <select id="categoryFilter" onchange="filterTools()">
+        <option value="">所有分类</option>
+        <option value="dev">dev</option>
+        <option value="ai">ai</option>
+        <option value="system">system</option>
+        <option value="editor">editor</option>
+        <option value="other">other</option>
+      </select>
+      <select id="sortBy" onchange="filterTools()">
+        <option value="name">按名称</option>
+        <option value="source">按来源</option>
+        <option value="size">按大小</option>
+        <option value="version">按版本</option>
+      </select>
+    </div>
+    <div style="margin-bottom:10px;color:#888;font-size:12px;">
+      共 <span id="filteredCount">0</span> 个工具
+      &nbsp;<span class="link-btn" onclick="exportCurrentList()">导出当前列表</span>
+    </div>
+    <table>
+      <thead><tr><th>名称</th><th>路径</th><th>版本</th><th>来源</th><th>分类</th><th>大小</th><th>锁定</th></tr></thead>
+      <tbody id="toolTable"></tbody>
+    </table>
+  </div>
+
+  <!-- 环境 -->
+  <div id="tab-environment" class="tab-content">
+    <div class="health-panel">
+      <h3 style="margin-bottom:12px;color:#569cd6;">运行时状态</h3>
+      <div id="runtimeList"></div>
+    </div>
+    <div class="health-panel">
+      <h3 style="margin-bottom:12px;color:#569cd6;">PATH 环境变量</h3>
+      <div id="pathList" style="max-height:400px;overflow-y:auto;"></div>
+    </div>
+    <div class="health-panel">
+      <h3 style="margin-bottom:12px;color:#569cd6;">系统信息</h3>
+      <div id="systemInfo"></div>
+    </div>
+  </div>
+
+  <!-- 配方 -->
+  <div id="tab-recipes" class="tab-content">
+    <div class="toolbar">
+      <input type="text" id="recipeSearch" placeholder="搜索配方..." oninput="filterRecipes()">
+      <select id="recipeCatFilter" onchange="filterRecipes()">
+        <option value="">所有分类</option>
+        <option value="dev">dev</option>
+        <option value="ai">ai</option>
+        <option value="system">system</option>
+        <option value="editor">editor</option>
+        <option value="other">other</option>
+      </select>
+    </div>
+    <div class="recipe-grid" id="recipeGrid"></div>
+  </div>
+
+  <!-- 配置 -->
+  <div id="tab-config" class="tab-content">
+    <div class="config-form" id="configForm"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+var allTools = [];
+var allRecipes = [];
+
+function switchTab(tabId, el) {
+  document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  var target = document.getElementById('tab-' + tabId);
+  if (target) target.classList.add('active');
+  if (el) el.classList.add('active');
+}
+
+function renderDashboard(stats, health, term, history) {
+  history = history || [];
+  var cards = [
+    '<div class="stat-card"><div class="label">工具总数</div><div class="value color-info">' + stats.total + '</div><div class="sub">所有来源</div></div>',
+    '<div class="stat-card"><div class="label">锁定版本</div><div class="value color-warning">' + stats.pinned + '</div><div class="sub">锁定防止更新</div></div>',
+    '<div class="stat-card"><div class="label">版本未知</div><div class="value color-error">' + stats.noVersion + '</div><div class="sub">需要版本检测</div></div>',
+    '<div class="stat-card"><div class="label">磁盘占用</div><div class="value color-success">' + formatSize(stats.totalSize) + '</div><div class="sub">所有工具合计</div></div>',
+  ];
+  document.getElementById('statsCards').innerHTML = cards.join('');
+
+  var healthItems = [];
+  if (health.issues) {
+    for (var i = 0; i < health.issues.length; i++) healthItems.push({ icon: '✗', color: 'color-error', text: health.issues[i] });
+  }
+  if (health.warnings) {
+    for (var i = 0; i < health.warnings.length; i++) healthItems.push({ icon: '⚠', color: 'color-warning', text: health.warnings[i] });
+  }
+  healthItems.push({ icon: '✓', color: 'color-success', text: '系统整体: ' + (health.status === 'healthy' ? '健康' : '需要关注') });
+  healthItems = healthItems.slice(0, 6);
+  document.getElementById('healthList').innerHTML = healthItems.map(function(h) {
+    return '<div class="health-item"><span class="health-icon ' + h.color + '">' + h.icon + '</span><span>' + h.text + '</span></div>';
+  }).join('');
+
+  var srcEntries = Object.entries(stats.bySource || {}).sort(function(a, b) { return b[1] - a[1]; });
+  var maxSrc = 1;
+  srcEntries.forEach(function(e) { if (e[1] > maxSrc) maxSrc = e[1]; });
+  document.getElementById('sourceBars').innerHTML = srcEntries.map(function(e) {
+    return '<div style="display:flex;align-items:center;gap:10px;margin:4px 0;"><span style="width:70px;color:#888;font-size:12px;">' + escapeHtml(e[0]) + '</span><div style="flex:1;background:#333;border-radius:3px;height:16px;"><div style="background:#0e639c;height:100%;border-radius:3px;width:' + Math.round(e[1] / maxSrc * 100) + '%;"></div></div><span style="width:40px;text-align:right;font-size:12px;">' + e[1] + '</span></div>';
+  }).join('');
+
+  var catEntries = Object.entries(stats.byCategory || {}).sort(function(a, b) { return b[1] - a[1]; });
+  var maxCat = 1;
+  catEntries.forEach(function(e) { if (e[1] > maxCat) maxCat = e[1]; });
+  document.getElementById('categoryBars').innerHTML = catEntries.map(function(e) {
+    return '<div style="display:flex;align-items:center;gap:10px;margin:4px 0;"><span style="width:70px;color:#888;font-size:12px;">' + escapeHtml(e[0]) + '</span><div style="flex:1;background:#333;border-radius:3px;height:16px;"><div style="background:#4ec9b0;height:100%;border-radius:3px;width:' + Math.round(e[1] / maxCat * 100) + '%;"></div></div><span style="width:40px;text-align:right;font-size:12px;">' + e[1] + '</span></div>';
+  }).join('');
+
+  // 渲染历史记录
+  var historyBody = document.getElementById('historyTable');
+  if (historyBody) {
+    var rows = [];
+    for (var i = 0; i < history.length; i++) {
+      var h = history[i];
+      var dur = Math.round((h.completedAt - h.startedAt) / 1000);
+      var time = new Date(h.startedAt).toLocaleString('zh-CN');
+      rows.push('<tr><td style="color:#888;white-space:nowrap;">' + time + '</td><td>' + (h.scanType || 'full') + '</td><td>' + (dur || '-') + '</td><td style="color:#4ec9b0;">' + (h.totalFound || 0) + ' 个工具</td></tr>');
+    }
+    if (rows.length === 0) rows.push('<tr><td colspan="4" class="empty">暂无记录</td></tr>');
+    historyBody.innerHTML = rows.join('');
+  }
+}
+
+function renderTools(tools) {
+  document.getElementById('filteredCount').textContent = tools.length;
+  var tbody = document.getElementById('toolTable');
+  if (tools.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">没有匹配的工具</td></tr>';
+    return;
+  }
+  var rows = tools.slice(0, 200).map(function(t) {
+    var srcClass = 'source-' + (t.source || 'other');
+    var catClass = 'cat-' + (t.category || 'other');
+    var versionCell = t.version || '<span style="color:#666">-</span>';
+    var locked = t.isPinned ? '🔒 ' + (t.pinnedVersion || '') : '-';
+    return '<tr><td><strong>' + escapeHtml(t.name) + '</strong></td><td style="color:#888;font-size:11px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escapeHtml(t.fullPath) + '">' + escapeHtml(t.fullPath) + '</td><td>' + versionCell + '</td><td><span class="source-tag ' + srcClass + '">' + t.source + '</span></td><td><span class="' + catClass + '">' + t.category + '</span></td><td style="color:#888;">' + formatSize(t.fileSize) + '</td><td>' + locked + '</td></tr>';
+  }).join('');
+  tbody.innerHTML = rows;
+}
+
+function filterTools() {
+  var search = (document.getElementById('search').value || '').toLowerCase();
+  var source = document.getElementById('sourceFilter').value;
+  var category = document.getElementById('categoryFilter').value;
+  var sortBy = document.getElementById('sortBy').value;
+  var filtered = allTools.filter(function(t) {
+    if (search) {
+      var hay = (t.name + ' ' + t.fullPath).toLowerCase();
+      if (hay.indexOf(search) === -1) return false;
+    }
+    if (source && t.source !== source) return false;
+    if (category && t.category !== category) return false;
+    return true;
+  });
+  if (sortBy === 'name') filtered.sort(function(a, b) { return a.name.localeCompare(b.name); });
+  else if (sortBy === 'size') filtered.sort(function(a, b) { return b.fileSize - a.fileSize; });
+  else if (sortBy === 'source') filtered.sort(function(a, b) { return a.source.localeCompare(b.source); });
+  renderTools(filtered);
+}
+
+function renderRecipes(recipes) {
+  var grid = document.getElementById('recipeGrid');
+  if (!grid) return;
+  grid.innerHTML = recipes.map(function(r) {
+    var sourcesHtml = '';
+    if (r.sources) {
+      for (var i = 0; i < r.sources.length; i++) {
+        var src = r.sources[i];
+        if (typeof src === 'object' && src !== null) src = src.type || '';
+        sourcesHtml += '<span class="source-tag source-' + src + '">' + src + '</span>';
+      }
+    }
+    return '<div class="recipe-card"><h3>' + escapeHtml(r.displayName || r.name) + '</h3><div class="desc">' + escapeHtml(r.description || '无描述') + '</div><div class="sources">' + sourcesHtml + '</div><div class="actions"><button class="btn-primary" onclick="installRecipe(\'' + escapeAttr(r.name) + '\')">安装</button><button class="btn-secondary" onclick="showToast(\'终端运行: cli-manager recipe show ' + escapeAttr(r.name) + '\')">详情</button></div></div>';
+  }).join('');
+}
+
+function filterRecipes() {
+  var search = (document.getElementById('recipeSearch').value || '').toLowerCase();
+  var cat = document.getElementById('recipeCatFilter').value;
+  var filtered = allRecipes.filter(function(r) {
+    if (search) {
+      var hay = (r.name + ' ' + r.displayName).toLowerCase();
+      if (hay.indexOf(search) === -1) return false;
+    }
+    if (cat && r.category !== cat) return false;
+    return true;
+  });
+  renderRecipes(filtered);
+}
+
+function renderEnvironment(pathData, term, config) {
+  var runtimeList = document.getElementById('runtimeList');
+  if (runtimeList && term.runtimes) {
+    runtimeList.innerHTML = term.runtimes.map(function(r) {
+      var icon = r.available ? '✓' : '✗';
+      var css = r.available ? 'color-success' : 'color-error';
+      return '<div class="health-item"><span class="health-icon ' + css + '">' + icon + '</span><span>' + r.name + '</span><span style="margin-left:auto;color:#888;font-size:12px;">' + (r.available ? '可用' : '未找到') + '</span></div>';
+    }).join('');
+  }
+
+  var pathList = document.getElementById('pathList');
+  if (pathList && pathData.dirs) {
+    var html = '';
+    for (var i = 0; i < Math.min(pathData.dirs.length, 50); i++) {
+      var d = pathData.dirs[i];
+      html += '<div class="health-item"><span class="health-icon ' + (d.exists ? 'color-success' : 'color-error') + '">' + (d.exists ? '✓' : '✗') + '</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escapeHtml(d.path) + '">' + escapeHtml(d.path) + '</span></div>';
+    }
+    if (pathData.total > 50) html += '<div class="text-dim" style="padding:8px;">... 共 ' + pathData.total + ' 个条目（显示前 50 个）</div>';
+    pathList.innerHTML = html;
+  }
+
+  var sysInfo = document.getElementById('systemInfo');
+  if (sysInfo) {
+    sysInfo.innerHTML = [
+      row('主机名', term.hostname),
+      row('平台', term.platform),
+      row('PATH 条目', pathData.total),
+      row('有效 PATH', pathData.dirs ? pathData.dirs.filter(function(d) { return d.exists; }).length : 0),
+    ].join('');
+  }
+}
+
+function row(k, v) {
+  return '<div class="health-item"><span style="width:100px;color:#888;">' + escapeHtml(k) + '</span><span>' + escapeHtml(v) + '</span></div>';
+}
+
+function renderConfig(config) {
+  var form = document.getElementById('configForm');
+  if (!form) return;
+  var fields = [
+    { key: 'scanInterval', label: '扫描频率', options: ['daily', 'weekly', 'manual'] },
+    { key: 'defaultFormat', label: '默认输出格式', options: ['table', 'json', 'text'] },
+    { key: 'colorEnabled', label: '彩色输出', options: ['true', 'false'] },
+    { key: 'autoUpdateCheck', label: '自动检查更新', options: ['true', 'false'] },
+  ];
+  form.innerHTML = '<h3 style="margin-bottom:12px;color:#569cd6;">配置管理</h3>' +
+    fields.map(function(f) {
+      var opts = f.options.map(function(o) {
+        var selected = String(config[f.key]) === o ? ' selected' : '';
+        return '<option value="' + o + '"' + selected + '>' + o + '</option>';
+      }).join('');
+      return '<div class="config-row"><label>' + f.label + '</label><select onchange="updateConfig(\'' + f.key + '\', this.value)">' + opts + '</select></div>';
+    }).join('');
+}
+
+function updateConfig(key, value) {
+  showToast('正在保存配置...');
+  var payload = {};
+  payload[key] = value;
+  fetch('/api/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    showToast(data.message || '配置已保存');
+    setTimeout(loadData, 500);
+  }).catch(function(err) {
+    showToast('保存失败: ' + err);
+  });
+}
+
+function triggerScan() {
+  showToast('正在触发扫描...');
+  fetch('/api/actions/scan', { method: 'POST' }).then(function() {
+    showToast('扫描已提交，3秒后刷新');
+    setTimeout(loadData, 3000);
+  });
+}
+
+function triggerBackup() {
+  fetch('/api/actions/backup', { method: 'POST' }).then(function(r) {
+    return r.json();
+  }).then(function(data) {
+    showToast(data.message);
+  });
+}
+
+function installRecipe(name) {
+  showToast('正在安装 ' + name + '...');
+  fetch('/api/actions/install', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name, from: 'recipe' }),
+  }).then(function() {
+    showToast(name + ' 安装已提交');
+    setTimeout(loadData, 3000);
+  });
+}
+
+function exportCurrentList() {
+  var search = (document.getElementById('search').value || '').toLowerCase();
+  var source = document.getElementById('sourceFilter').value;
+  var category = document.getElementById('categoryFilter').value;
+  var filtered = allTools.filter(function(t) {
+    if (search) {
+      var hay = (t.name + ' ' + t.fullPath).toLowerCase();
+      if (hay.indexOf(search) === -1) return false;
+    }
+    if (source && t.source !== source) return false;
+    if (category && t.category !== category) return false;
+    return true;
+  });
+  var blob = new Blob([JSON.stringify(filtered, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'tools-export.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('已导出 ' + filtered.length + ' 个工具');
+}
+
+function showToast(msg) {
+  var toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  setTimeout(function() { toast.style.display = 'none'; }, 3000);
+}
+
+function formatSize(bytes) {
+  if (!bytes) return '-';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+  if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+  return (bytes / 1073741824).toFixed(1) + ' GB';
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/[&<>"']/g, function(m) {
+    var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    return map[m] || m;
+  });
+}
+
+function escapeAttr(str) {
+  if (!str) return '';
+  return String(str).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+}
+
+function loadData() {
+  var loadingEl = document.getElementById('loadingIndicator');
+  if (loadingEl) loadingEl.textContent = '⏳ 正在刷新数据...';
+  Promise.all([
+    fetch('/api/tools'),
+    fetch('/api/stats'),
+    fetch('/api/health'),
+    fetch('/api/recipes'),
+    fetch('/api/path'),
+    fetch('/api/terminal'),
+    fetch('/api/config'),
+    fetch('/api/history?limit=8'),
+  ]).then(function(results) {
+    return Promise.all(results.map(function(r) { return r.json(); }));
+  }).then(function(data) {
+    var toolsData = data[0], stats = data[1], health = data[2], recipesData = data[3], pathData = data[4], term = data[5], config = data[6], historyData = data[7];
+    allTools = toolsData.tools;
+    allRecipes = recipesData.recipes;
+    renderDashboard(stats, health, term, historyData.history);
+    renderTools(allTools);
+    renderRecipes(allRecipes);
+    renderEnvironment(pathData, term, config);
+    renderConfig(config);
+    var badge = document.getElementById('toolCountBadge');
+    if (badge) badge.textContent = stats.total + ' 工具';
+    if (loadingEl) loadingEl.textContent = '✓ 最近更新: ' + new Date().toLocaleTimeString('zh-CN');
+  }).catch(function(err) {
+    showToast('加载数据失败: ' + err);
+    if (loadingEl) loadingEl.textContent = '❌ 加载失败，请检查服务';
+  });
+}
+
+loadData();
+setInterval(loadData, 30000);
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+name: az
+displayName: Azure CLI
+description: '微软 Azure 命令行工具'
+category: dev
+sources:
+  - type: winget
+    packageName: Microsoft.AzureCLI
+    executableName: az
+  - type: choco
+    packageName: azure-cli
+    executableName: az
+versionCmd: 'az --version'
+versionRegex: 'azure-cli\s+(\d+\.\d+\.\d+)'

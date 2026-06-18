@@ -1,0 +1,13 @@
+name: docker
+displayName: Docker Desktop
+description: '容器化平台'
+category: dev
+sources:
+  - type: winget
+    packageName: Docker.DockerDesktop
+    executableName: docker
+  - type: choco
+    packageName: docker-desktop
+    executableName: docker
+versionCmd: 'docker --version'
+versionRegex: '(\d+\.\d+\.\d+)'
