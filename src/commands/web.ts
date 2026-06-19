@@ -189,6 +189,54 @@ export function webCommand(options: { port?: number }) {
       return;
     }
 
+    // API: 工具详情
+    if (url.pathname.match(/^\/api\/tools\/[^/]+$/) && req.method === 'GET') {
+      const id = decodeURIComponent(url.pathname.split('/')[3]);
+      const tool = toolRepo.findById(id);
+      if (!tool) {
+        res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ message: 'Tool not found' }));
+        return;
+      }
+      const versionHistory = historyRepo.getVersionHistory(tool.name, 10);
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ tool, versionHistory }));
+      return;
+    }
+
+    // API: 锁定工具
+    if (url.pathname.match(/^\/api\/tools\/[^/]+\/pin$/) && req.method === 'POST') {
+      const id = decodeURIComponent(url.pathname.split('/')[3]);
+      const tool = toolRepo.findById(id);
+      if (!tool) {
+        res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ message: 'Tool not found' }));
+        return;
+      }
+      const body = await readBody(req);
+      const payload = JSON.parse(body || '{}');
+      const version = payload.version || tool.version || '';
+      toolRepo.updatePinStatus(tool.name, true, version);
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ message: `${tool.name} pinned to ${version || '(current)'}` }));
+      return;
+    }
+
+    // API: 解锁工具
+    if (url.pathname.match(/^\/api\/tools\/[^/]+\/unpin$/) && req.method === 'POST') {
+      const id = decodeURIComponent(url.pathname.split('/')[3]);
+      const tool = toolRepo.findById(id);
+      if (!tool) {
+        res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ message: 'Tool not found' }));
+        return;
+      }
+      toolRepo.updatePinStatus(tool.name, false, null);
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ message: `${tool.name} unpinned` }));
+      return;
+    }
+
     // 首页 HTML
     if (url.pathname === '/' || url.pathname === '/index.html') {
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });

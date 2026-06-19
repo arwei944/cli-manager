@@ -139,55 +139,44 @@ program
     uninstallCommand(name);
   });
 
-program
-  .command('recipe')
-  .description('管理安装配方')
-  .addCommand(
-    program
-      .command('list')
-      .description('列出所有配方')
-      .action(() => {
-        recipeCommand('list');
-      })
-  )
-  .addCommand(
-    program
-      .command('show')
-      .description('查看配方详情')
-      .argument('<name>', '配方名称')
-      .action((name) => {
-        recipeCommand('show', name);
-      })
-  )
-  .addCommand(
-    program
-      .command('add')
-      .description('添加自定义配方')
-      .argument('<name>', '配方名称')
-      .option('--source <source>', '安装源 (npm|pip|gh|scoop|winget|choco)')
-      .option('--exec <executable>', '可执行文件名')
-      .action((name, options) => {
-        recipeCommand('add', name, options);
-      })
-  )
-  .addCommand(
-    program
-      .command('remove')
-      .description('删除配方')
-      .argument('<name>', '配方名称')
-      .action((name) => {
-        recipeCommand('remove', name);
-      })
-  )
-  .addCommand(
-    program
-      .command('edit')
-      .description('打开编辑器编辑配方')
-      .argument('<name>', '配方名称')
-      .action((name) => {
-        recipeCommand('edit', name);
-      })
-  );
+// 注册 recipe 子命令（逐个链式注册，避免 addCommand 在根重复注册）
+const recipeCmd = program.command('recipe').description('管理安装配方');
+recipeCmd
+  .command('list')
+  .description('列出所有配方')
+  .action(() => {
+    recipeCommand('list');
+  });
+recipeCmd
+  .command('show')
+  .description('查看配方详情')
+  .argument('<name>', '配方名称')
+  .action((name) => {
+    recipeCommand('show', name);
+  });
+recipeCmd
+  .command('add')
+  .description('添加自定义配方')
+  .argument('<name>', '配方名称')
+  .option('--source <source>', '安装源 (npm|pip|gh|scoop|winget|choco)')
+  .option('--exec <executable>', '可执行文件名')
+  .action((name, options) => {
+    recipeCommand('add', name, options);
+  });
+recipeCmd
+  .command('remove')
+  .description('删除配方')
+  .argument('<name>', '配方名称')
+  .action((name) => {
+    recipeCommand('remove', name);
+  });
+recipeCmd
+  .command('edit')
+  .description('打开编辑器编辑配方')
+  .argument('<name>', '配方名称')
+  .action((name) => {
+    recipeCommand('edit', name);
+  });
 
 // P3 命令
 program

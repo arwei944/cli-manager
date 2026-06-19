@@ -4,70 +4,66 @@ import { isWindows } from '../utils/platform';
 const versionCache = new Map<string, { version: string | null; timestamp: number }>();
 const CACHE_TTL = 60 * 60 * 1000;
 
-const VERSION_FLAGS = ['--version', '-v'];
-const VERSION_REGEX = /(\d+\.\d+\.\d+[\w.-]*)/;
+const VERSION_FLAGS = ['--version', '-v', 'version'];
+const VERSION_REGEX = /(\d+\.\d+[\w.\-]*)/;
 
-const KNOWN_CLI_TOOLS = new Set([
-  'node', 'npm', 'npx', 'pnpm', 'yarn',
-  'python', 'python3', 'pip', 'pip3',
-  'git', 'gh',
-  'docker', 'docker-compose',
-  'go', 'rustc', 'cargo',
-  'java', 'javac', 'mvn', 'gradle',
-  'ruby', 'gem',
-  'php', 'composer',
-  'gcc', 'g++', 'clang', 'make', 'cmake',
-  'code', 'cursor',
-  'vim', 'nvim', 'nano',
-  'curl', 'wget',
-  'jq', 'yq',
-  'terraform', 'kubectl', 'helm',
-  'aws', 'az', 'gcloud',
-  'ffmpeg', 'ffprobe',
-  'deno', 'bun',
-  'dotnet',
-  '7z', 'unzip',
-  'rg', 'fd', 'bat', 'lsd',
-  'tldr', 'htop', 'tmux',
-  'openssl',
-  'sqlite3',
+// 系统工具候选集：对黑名单外的工具才用 exec 探测，避免误伤
+const SYSTEM_DENYLIST = new Set([
+  'conhost','csrss','dwm','explorer','lsass','services','smss','spoolsv','svchost',
+  'taskhostw','wininit','winlogon','wmiprvse','wuauclt','wusa','searchindexer',
+  'RuntimeBroker','ShellExperienceHost','StartMenuExperienceHost','SecurityHealthService',
+  'registry','ntoskrnl','hal','ci','migwiz','sppnotify','sppsvc','TrustedInstaller',
+  'AppHostRegistrationVerifier','BackgroundTransferService','BcastDVRService',
+  'BFE','BITS','Browser','bthserv','camsvc','CDPSvc','CDPUserSvc',
+  'certsvc','ClipSVC','CoreMessagingRegistrar','cryptnet','CryptSvc',
+  'CscService','dcache','defragsvc','DeviceAssociationService','DeviceInstall','DevicesFlowUserSvc',
+  'dfdwiz','diagnosticinvoker','diagtrack','DialogBlockingService','Dnscache',
+  'DoSvc','DPS','DsmSvc','EapHost','EFS','elhkmsvc','enterprisewisvc',
+  'eventlog','EventSystem','Fax','fdPHost','FDResPub','fhsvc',
+  'FontCache','gpsvc','hidserv','hkeylocalmachine','icadesktop','icamux','icssvc',
+  'IKEEXT','InstallService','iphlpsvc','ipnathlp','keyiso','KNSoftScore',
+  'KtmRm','LanmanServer','LanmanWorkstation','lltdsvc','lmhosts','LSCAgentSvc',
+  'LSM','MapsBroker','Mcx2Svc','MicrosoftEdgeUpdate','MixedRealityService','MMCSS',
+  'MpsSvc','msiserver','MSSQL$SQLEXPRESS','NcdAutoSetup','Netlogon','NetMsmqActivator','NetworkSetupSvc',
+  'NetTCP','NetTcpPortSharing','NlaSvc','nsi','OneDrive','p2psvc','p2pimsvc',
+  'PcaEngine','PeerDist','pla','PlugPlay','PolicyAgent','powercfg','PrintNotify',
+  'profsvc','ProfSvc','PushToInstall','QoS','QuietHours','RasAuto','RasMan',
+  'RemoteAccess','RemoteRegistry','RpcEptMapper','RpcLocator','RpcSs','rtwisvc',
+  'SCardSvr','Schedule','SCPolicySvc','SDRSVC','SearchIndexer','SEMgrSvc',
+  'SensorDataService','SensorService','SessionEnv','sethc','SharedAccess',
+  'shp','smphost','SNMPTRAP','spectrum','srvsvc','StateRepository',
+  'stisvc','svsm','swprv','SysMain','SystemEventsBroker','TabletInputService',
+  'TapiSrv','TermService','ThemeSvc','ThreatProtection','TokenBroker',
+  'TrkWks','TrustedInstaller','TzAutoupdate','TzUpdate','UALSVC',
+  'unimdm','upnphost','UserManager','UserProfileSvc','vaultsvc',
+  'vp','W32Time','WalletService','WbioSrvc','WcsPlugInService','wcncsvc',
+  'WdiServiceHost','WdiSystemHost','WebClient','wercplsupport','Wecsvc',
+  'wfs','WinDefend','WinHttpAutoProxySvc','Winmgmt','WinRM','wisvc',
+  'WMPNetworkSvc','WpnService','WpnUserService','wscsvc','WSearch',
+  'wuauserv','XblAuthManager','XblAuthSvc','XboxNetApiSvc'
 ]);
 
 function execVersionCmd(command: string): string | null {
-  const nullRedir = isWindows() ? '2>nul' : '2>/dev/null';
   try {
-    const result = execSync(`${command} ${nullRedir}`, {
+    const result = execSync(command, {
       encoding: 'utf-8',
-      timeout: 2000,
-      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 1500,
+      stdio: ['ignore', 'pipe', 'ignore'],
     });
-    return result.trim() || null;
+    const text = result.trim();
+    if (!text) return null;
+    const match = text.match(VERSION_REGEX);
+    return match ? match[1] : null;
   } catch {
     return null;
   }
 }
 
 export function extractVersion(fullPath: string, name: string): string | null {
-  if (!KNOWN_CLI_TOOLS.has(name.toLowerCase())) return null;
-
-  const cached = versionCache.get(fullPath);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.version;
-  }
-
-  for (const flag of VERSION_FLAGS) {
-    const output = execVersionCmd(`"${fullPath}" ${flag}`);
-    if (output) {
-      const match = output.match(VERSION_REGEX);
-      if (match) {
-        versionCache.set(fullPath, { version: match[1], timestamp: Date.now() });
-        return match[1];
-      }
-    }
-  }
-
-  versionCache.set(fullPath, { version: null, timestamp: Date.now() });
-  return null;
+  const lower = name.toLowerCase();
+  // 黑名单及极短名称跳过
+  if (SYSTEM_DENYLIST.has(lower) || lower.length < 2) return null;
+  return execVersionCmd(`"${fullPath}" --version`) || execVersionCmd(`"${fullPath}" -v`);
 }
 
 export function clearVersionCache(): void {

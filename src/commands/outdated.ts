@@ -57,8 +57,9 @@ export async function outdatedCommand(options: { source?: string; json?: boolean
     }
 
     try {
-      const latestVersion = upstreamChecker.getLatestVersion(tool.name, tool.source, tool.version ?? undefined);
-      versionMap.set(tool.name, { source: tool.source, currentVersion: tool.version, latestVersion: latestVersion });
+      const info = upstreamChecker.getLatestVersion(tool.name, tool.source, tool.version ?? undefined);
+      const latestVersion = info ? info.latestVersion : null;
+      versionMap.set(tool.name, { source: tool.source, currentVersion: tool.version, latestVersion });
     } catch {
       versionMap.set(tool.name, { source: tool.source, currentVersion: tool.version, latestVersion: null });
     }

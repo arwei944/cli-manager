@@ -8,21 +8,44 @@ const CHOCO_PATTERNS = [/chocolatey[\\/]/i];
 
 const CATEGORY_MAP: Array<{ patterns: RegExp[]; category: ToolCategory }> = [
   {
-    patterns: [/node/i, /python/i, /gcc/i, /clang/i, /make/i, /cmake/i, /git/i, /docker/i, /kubectl/i, /helm/i, /terraform/i, /ansible/i, /mvn/i, /gradle/i, /cargo/i, /rust/i, /go[^o]/i, /java/i, /javac/i, /npm/i, /yarn/i, /pnpm/i, /npx/i],
+    // 编程语言与运行时
+    patterns: [/^node$/, /^npm$/, /^npx$/, /^pnpm$/, /^yarn$/, /^bun$/, /^deno$/, /python[23]?/, /^pip[23]?$/, /^ruby$/, /^gem$/, /^java$/, /^javac$/, /^go$/, /^rustc$/, /^cargo$/, /^php$/, /^composer$/, /^dotnet$/, /^mvn$/, /^gradle$/, /^sbt$/, /^cabal$/, /^stack$/, /^mix$/, /^elixir$/, /^nim$/, /^zig$/, /^dart$/, /^flutter$/],
     category: 'dev',
   },
   {
-    patterns: [/ollama/i, /llama/i, /whisper/i, /diffusers/i, /transformers/i, /openai/i],
+    // AI / ML
+    patterns: [/ollama/i, /llama/i, /whisper/i, /diffusers/i, /transformers/i, /openai/i, /langchain/i, /llamacpp/i, /stable/i, /comfy/i, /invokeai/i],
     category: 'ai',
   },
   {
-    // editor 放在 system 之前，确保 vim/nano 等编辑器优先匹配
-    patterns: [/code[\\/]?$/i, /cursor/i, /vim/i, /nvim/i, /neovim/i, /notepad/i, /subl/i, /atom/i, /emacs/i, /nano/i],
+    // 编辑器 / IDE
+    patterns: [/code$/, /^cursor$/, /^vim$/, /^nvim$/, /^nano$/, /^emacs$/, /^subl$/, /^atom$/, /^notepad/, /^zed$/],
     category: 'editor',
   },
   {
-    patterns: [/system32/i, /syswow64/i, /windows[\\/]/i, /usr[\\/]bin/i, /grep/i, /awk/i, /sed/i, /\bls\b/i, /\bps\b/i, /top/i],
+    // 系统工具 / Shell
+    patterns: [/system32/i, /syswow64/i, /windows[\\/]/i, /^grep$/, /^awk$/, /^sed$/, /\bls\b/i, /\bps\b/i, /^top$/, /^htop$/, /^tmux$/, /^zsh$/, /^bash$/, /^fish$/, /^powershell$/i, /^pwsh$/i, /^cmd$/i, /^winget$/i, /^choco$/],
     category: 'system',
+  },
+  {
+    // 数据库
+    patterns: [/^mysql$/, /^mariadb$/, /^psql$/, /^sqlite3$/, /^mongo$/, /^redis$/, /^redis-cli$/, /^memcached$/, /^postgres$/, /^mongoexport$/, /^mongod$/, /^mongos$/],
+    category: 'other',
+  },
+  {
+    // 容器与编排
+    patterns: [/^docker$/, /^docker-compose$/, /^kubectl$/, /^helm$/, /^k9s$/, /^kind$/, /^minikube$/, /^skaffold$/, /^istioctl$/, /^argocd$/],
+    category: 'other',
+  },
+  {
+    // 云厂商 CLI
+    patterns: [/^aws$/, /^az$/, /^gcloud$/, /^ibmcloud$/, /^doctl$/, /^flyctl$/, /^vercel$/, /^netlify$/, /^heroku$/, /^firebase$/],
+    category: 'other',
+  },
+  {
+    // 常用工具保留在 dev/other 兜底
+    patterns: [],
+    category: 'other',
   },
 ];
 

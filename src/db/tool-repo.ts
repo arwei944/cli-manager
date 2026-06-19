@@ -17,6 +17,7 @@ export interface ToolRow {
   isPinned: number;
   pinnedVersion: string | null;
   pathPriority: number;
+  tags: string;
 }
 
 function rowToTool(row: ToolRow): ToolInfo {
@@ -36,6 +37,7 @@ function rowToTool(row: ToolRow): ToolInfo {
     isPinned: row.isPinned === 1,
     pinnedVersion: row.pinnedVersion,
     pathPriority: row.pathPriority,
+    tags: row.tags || '',
   };
 }
 
@@ -80,8 +82,8 @@ export class ToolRepo {
   upsert(tool: ToolInfo): void {
     const db = getDatabase();
     db.prepare(`
-      INSERT INTO tools (id, name, fullPath, version, source, category, fileSize, fileType, isSigned, modifiedAt, firstDetectedAt, lastDetectedAt, isPinned, pinnedVersion, pathPriority)
-      VALUES (@id, @name, @fullPath, @version, @source, @category, @fileSize, @fileType, @isSigned, @modifiedAt, @firstDetectedAt, @lastDetectedAt, @isPinned, @pinnedVersion, @pathPriority)
+      INSERT INTO tools (id, name, fullPath, version, source, category, fileSize, fileType, isSigned, modifiedAt, firstDetectedAt, lastDetectedAt, isPinned, pinnedVersion, pathPriority, tags)
+      VALUES (@id, @name, @fullPath, @version, @source, @category, @fileSize, @fileType, @isSigned, @modifiedAt, @firstDetectedAt, @lastDetectedAt, @isPinned, @pinnedVersion, @pathPriority, @tags)
       ON CONFLICT(id) DO UPDATE SET
         version = excluded.version,
         source = excluded.source,
@@ -90,7 +92,8 @@ export class ToolRepo {
         isSigned = excluded.isSigned,
         modifiedAt = excluded.modifiedAt,
         lastDetectedAt = excluded.lastDetectedAt,
-        pathPriority = excluded.pathPriority
+        pathPriority = excluded.pathPriority,
+        tags = excluded.tags
     `).run({
       id: tool.id,
       name: tool.name,
@@ -107,6 +110,7 @@ export class ToolRepo {
       isPinned: tool.isPinned ? 1 : 0,
       pinnedVersion: tool.pinnedVersion,
       pathPriority: tool.pathPriority,
+      tags: tool.tags || '',
     });
   }
 
@@ -154,5 +158,10 @@ export class ToolRepo {
   updatePinStatus(name: string, isPinned: boolean, pinnedVersion?: string | null): void {
     const db = getDatabase();
     db.prepare('UPDATE tools SET isPinned = ?, pinnedVersion = ? WHERE name = ?').run(isPinned ? 1 : 0, pinnedVersion ?? null, name);
+  }
+
+  updateTags(id: string, tags: string): void {
+    const db = getDatabase();
+    db.prepare('UPDATE tools SET tags = ? WHERE id = ?').run(tags, id);
   }
 }

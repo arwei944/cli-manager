@@ -20,6 +20,7 @@ export interface ToolInfo {
   isPinned: boolean;
   pinnedVersion: string | null;
   pathPriority: number;
+  tags?: string;
 }
 
 export type ScanType = 'full' | 'incremental';
