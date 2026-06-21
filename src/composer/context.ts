@@ -9,6 +9,8 @@ import type { IHistoryRepository } from '../ports/history-repo';
 import type { IInstallerRegistry } from '../ports/installer-registry';
 import type { IRecipeRegistry } from '../ports/recipe-registry';
 import type { IPluginManager } from '../ports/plugin-manager';
+import type { IEnvManager } from '../ports/env-manager';
+import type { IVersionManager } from '../ports/version-manager';
 import { ScanWorkflow } from './scan-workflow';
 import { InstallWorkflow } from './install-workflow';
 import { UpdateWorkflow } from './update-workflow';
@@ -67,5 +69,11 @@ export const services = {
   },
   get backupWorkflow(): BackupWorkflow {
     return getContainer().resolve<BackupWorkflow>(WORKFLOW.Backup);
+  },
+  get envManager(): IEnvManager {
+    return getContainer().resolve<IEnvManager>(SERVICE.EnvManager);
+  },
+  get versionManager(): IVersionManager {
+    return getContainer().resolve<IVersionManager>(SERVICE.VersionManager);
   },
 };

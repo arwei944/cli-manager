@@ -6,6 +6,8 @@ import { Scanner } from '../scanner';
 import { registry as installerRegistry } from '../installer';
 import { recipeRegistry } from '../recipe/registry';
 import { PluginManager } from '../plugins';
+import { EnvManager } from '../env';
+import { VersionManager } from '../versioner';
 import { ScanWorkflow } from './scan-workflow';
 import { InstallWorkflow } from './install-workflow';
 import { UpdateWorkflow } from './update-workflow';
@@ -45,6 +47,13 @@ export function createContainer(): Container {
 
   // 插件管理器
   c.register(SERVICE.PluginManager, () => pluginManager);
+
+  // 环境与版本管理
+  c.register(SERVICE.EnvManager, () => new EnvManager());
+  c.register(SERVICE.VersionManager, (c) => new VersionManager(
+    c.resolve(SERVICE.ToolRepo),
+    c.resolve(SERVICE.HistoryRepo),
+  ));
 
   // 编排层（Workflow）
   c.register(WORKFLOW.Scan, (c) => new ScanWorkflow(

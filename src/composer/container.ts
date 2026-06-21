@@ -19,6 +19,8 @@ export const SERVICE = {
   InstallerRegistry: 'IInstallerRegistry',
   RecipeRegistry: 'IRecipeRegistry',
   PluginManager: 'IPluginManager',
+  EnvManager: 'IEnvManager',
+  VersionManager: 'IVersionManager',
 } as const;
 
 export class Container {
