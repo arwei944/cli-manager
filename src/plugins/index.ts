@@ -2,6 +2,7 @@ import path from 'node:path';
 import os from 'node:os';
 import fs from 'node:fs';
 import type { Command } from 'commander';
+import type { IPluginManager } from '../ports/plugin-manager';
 
 export type PluginHook = 'preScan' | 'postScan' | 'preInstall' | 'postInstall' | 'preUninstall' | 'postUninstall';
 
@@ -19,7 +20,7 @@ export interface CliPlugin {
   hooks?: Partial<Record<PluginHook, (...args: unknown[]) => void | Promise<void>>>;
 }
 
-export class PluginManager {
+export class PluginManager implements IPluginManager {
   private plugins = new Map<string, CliPlugin>();
   private hooks = new Map<PluginHook, Array<(...args: unknown[]) => void | Promise<void>>>();
   private commandProgram?: Command;

@@ -1,5 +1,6 @@
 import { getDatabase } from './index';
 import type { ToolInfo, ToolSource, ToolCategory, FileType } from '../types';
+import type { IToolRepository } from '../ports/tool-repo';
 
 export interface ToolRow {
   id: string;
@@ -41,7 +42,7 @@ function rowToTool(row: ToolRow): ToolInfo {
   };
 }
 
-export class ToolRepo {
+export class ToolRepo implements IToolRepository {
   findAll(): ToolInfo[] {
     const db = getDatabase();
     const rows = db.prepare('SELECT * FROM tools ORDER BY name ASC, pathPriority ASC').all() as ToolRow[];

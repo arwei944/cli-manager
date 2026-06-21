@@ -1,7 +1,8 @@
 import { loadAllRecipes, loadRecipeFromFile, loadUserRecipesFromDir, saveRecipeToFile, getRecipeUserDir } from './loader';
 import type { Recipe } from '../types';
+import type { IRecipeRegistry } from '../ports/recipe-registry';
 
-export class RecipeRegistry {
+export class RecipeRegistry implements IRecipeRegistry {
   private recipes = new Map<string, Recipe>();
 
   load(): void {

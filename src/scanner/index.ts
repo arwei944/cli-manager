@@ -7,10 +7,11 @@ import { ToolRepo } from '../db/tool-repo';
 import { HistoryRepo } from '../db/history-repo';
 import { createSpinner } from '../ui/spinner';
 import type { ToolInfo, ScanResult, ScanType } from '../types';
+import type { IScanner } from '../ports/scanner';
 
 const BATCH_SIZE = 10;
 
-export class Scanner {
+export class Scanner implements IScanner {
   private toolRepo = new ToolRepo();
   private historyRepo = new HistoryRepo();
 

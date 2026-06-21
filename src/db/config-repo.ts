@@ -1,8 +1,9 @@
 import { getDatabase, getDbPath } from './index';
 import type { Config, ScanInterval, OutputFormat, InstallSource } from '../types';
 import { DEFAULT_CONFIG } from '../types';
+import type { IConfigRepository } from '../ports/config-repo';
 
-export class ConfigRepo {
+export class ConfigRepo implements IConfigRepository {
   get(): Config {
     const db = getDatabase();
     const row = db.prepare('SELECT value FROM config WHERE key = ?').get('config') as { value: string } | undefined;

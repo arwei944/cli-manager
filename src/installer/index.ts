@@ -1,32 +1,17 @@
 import type { ToolSource } from '../types';
+import type { IInstaller, InstallOptions, InstallResult, IInstallerRegistry } from '../ports';
 
-export interface Installer {
-  readonly source: ToolSource;
-  install(name: string, options?: InstallOptions): Promise<InstallResult>;
-  uninstall(name: string): Promise<InstallResult>;
-  checkInstalled(name: string): Promise<boolean>;
-  getVersion(name: string): Promise<string | null>;
-}
+// 向后兼容的别名导出
+export type { IInstaller as Installer, InstallOptions, InstallResult } from '../ports';
 
-export interface InstallOptions {
-  version?: string;
-  dryRun?: boolean;
-}
+export class InstallerRegistry implements IInstallerRegistry {
+  private installers = new Map<ToolSource, IInstaller>();
 
-export interface InstallResult {
-  success: boolean;
-  message: string;
-  version?: string | null;
-}
-
-export class InstallerRegistry {
-  private installers = new Map<ToolSource, Installer>();
-
-  register(installer: Installer): void {
+  register(installer: IInstaller): void {
     this.installers.set(installer.source, installer);
   }
 
-  get(source: ToolSource): Installer | undefined {
+  get(source: ToolSource): IInstaller | undefined {
     return this.installers.get(source);
   }
 
