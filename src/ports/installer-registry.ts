@@ -1,4 +1,4 @@
-import type { ToolSource, InstallSource } from '../types';
+import type { ToolSource } from '../types';
 import type { IInstaller } from './installer';
 
 /** 安装器注册表端口 */

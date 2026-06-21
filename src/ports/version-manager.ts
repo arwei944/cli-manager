@@ -1,5 +1,3 @@
-import type { ToolInfo } from '../types';
-
 /** 版本信息 */
 export interface VersionInfo {
   name: string;

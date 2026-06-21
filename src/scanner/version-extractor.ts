@@ -1,10 +1,6 @@
 import { execSync } from 'node:child_process';
-import { isWindows } from '../utils/platform';
 
 const versionCache = new Map<string, { version: string | null; timestamp: number }>();
-const CACHE_TTL = 60 * 60 * 1000;
-
-const VERSION_FLAGS = ['--version', '-v', 'version'];
 const VERSION_REGEX = /(\d+\.\d+[\w.\-]*)/;
 
 // 系统工具候选集：对黑名单外的工具才用 exec 探测，避免误伤

@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import type { IToolRepository } from '../ports/tool-repo';
-import type { ToolInfo } from '../types';
 
 const SYNC_DIR = path.join(os.homedir(), '.cli-manager', 'sync');
 

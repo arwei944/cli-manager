@@ -1,8 +1,9 @@
 import type { ToolSource } from '../types';
-import type { IInstaller, InstallOptions, InstallResult, IInstallerRegistry } from '../ports';
+import type { IInstaller, IInstallerRegistry } from '../ports';
 
 // 向后兼容的别名导出
-export type { IInstaller as Installer, InstallOptions, InstallResult } from '../ports';
+export type { IInstaller as Installer } from '../ports';
+export type { InstallOptions, InstallResult } from '../ports';
 
 export class InstallerRegistry implements IInstallerRegistry {
   private installers = new Map<ToolSource, IInstaller>();

@@ -8,8 +8,8 @@ const CHOCO_PATTERNS = [/chocolatey[\\/]/i];
 
 const CATEGORY_MAP: Array<{ patterns: RegExp[]; category: ToolCategory }> = [
   {
-    // 编程语言与运行时
-    patterns: [/^node$/, /^npm$/, /^npx$/, /^pnpm$/, /^yarn$/, /^bun$/, /^deno$/, /python[23]?/, /^pip[23]?$/, /^ruby$/, /^gem$/, /^java$/, /^javac$/, /^go$/, /^rustc$/, /^cargo$/, /^php$/, /^composer$/, /^dotnet$/, /^mvn$/, /^gradle$/, /^sbt$/, /^cabal$/, /^stack$/, /^mix$/, /^elixir$/, /^nim$/, /^zig$/, /^dart$/, /^flutter$/],
+    // 编程语言与运行时 + 版本控制
+    patterns: [/^node$/, /^npm$/, /^npx$/, /^pnpm$/, /^yarn$/, /^bun$/, /^deno$/, /python[23]?/, /^pip[23]?$/, /^ruby$/, /^gem$/, /^java$/, /^javac$/, /^go$/, /^rustc$/, /^cargo$/, /^php$/, /^composer$/, /^dotnet$/, /^mvn$/, /^gradle$/, /^sbt$/, /^cabal$/, /^stack$/, /^mix$/, /^elixir$/, /^nim$/, /^zig$/, /^dart$/, /^flutter$/, /^git$/, /^gh$/],
     category: 'dev',
   },
   {
