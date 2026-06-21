@@ -1,9 +1,9 @@
 import { Command } from 'commander';
-import { createContainer, pluginManager } from './composer';
+import { initContext, services } from './composer/context';
 import { loadBuiltinPlugins, loadUserPlugins } from './plugins';
 
 // 初始化 DI 容器（在模块加载阶段完成）
-createContainer();
+initContext();
 import { scanCommand } from './commands/scan';
 import { configCommand } from './commands/config';
 import { listCommand } from './commands/list';
@@ -316,8 +316,8 @@ async function initializePlugins(): Promise<void> {
   }).catch(() => {
     // 用户插件加载失败不影响主程序
   });
-  pluginManager.setCommandProgram(program);
-  pluginManager.registerCommands();
+  services.pluginManager.setCommandProgram(program);
+  services.pluginManager.registerCommands();
 }
 
 initializePlugins();

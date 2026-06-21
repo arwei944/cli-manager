@@ -1,15 +1,14 @@
-import { Scanner } from '../scanner';
 import { initDatabase } from '../db';
 import { colors } from '../ui/colors';
 import { createTable } from '../ui/table';
 import type { ScanType } from '../types';
+import { services } from '../composer/context';
 
 export async function scanCommand(options: { full?: boolean; format?: string }) {
   initDatabase();
 
   const scanType: ScanType = options.full ? 'full' : 'incremental';
-  const scanner = new Scanner();
-  const result = await scanner.scan(scanType);
+  const result = await services.scanWorkflow.scan(scanType);
 
   const rows = [
     [String(result.totalFound), String(result.added), String(result.removed), String(result.changed), result.scanType],
