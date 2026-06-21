@@ -2,8 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 // HTML 文件路径（相对于项目根目录）
-const htmlPath = path.resolve(process.cwd(), 'src/commands/web.html');
-const outputPath = path.resolve(process.cwd(), 'src/commands/web.assets.ts');
+const htmlPath = path.resolve(process.cwd(), 'src/web-templates/index.html');
+const outputPath = path.resolve(process.cwd(), 'src/web-templates/assets.ts');
 
 // 读取 HTML 内容
 const htmlContent = fs.readFileSync(htmlPath, 'utf-8');

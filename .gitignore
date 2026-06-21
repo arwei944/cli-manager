@@ -8,4 +8,4 @@ dist/
 Thumbs.db
 
 # 自动生成的资源文件，由 scripts/bundle-html.js 构建时产生
-src/commands/web.assets.ts
+src/web-templates/assets.ts

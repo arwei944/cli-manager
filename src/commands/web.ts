@@ -10,7 +10,7 @@ import { recipeRegistry } from '../recipe/registry';
 import { colors } from '../ui/colors';
 import os from 'node:os';
 // web.assets.ts 由 scripts/bundle-html.js 在构建时自动生成
-import { INDEX_HTML } from './web.assets';
+import { INDEX_HTML } from '../web-templates/assets';
 
 const toolRepo = new ToolRepo();
 const historyRepo = new HistoryRepo();
