@@ -1,5 +1,9 @@
 import { Command } from 'commander';
-import { loadBuiltinPlugins, loadUserPlugins, pluginManager } from './plugins';
+import { createContainer, pluginManager } from './composer';
+import { loadBuiltinPlugins, loadUserPlugins } from './plugins';
+
+// 初始化 DI 容器（在模块加载阶段完成）
+createContainer();
 import { scanCommand } from './commands/scan';
 import { configCommand } from './commands/config';
 import { listCommand } from './commands/list';
